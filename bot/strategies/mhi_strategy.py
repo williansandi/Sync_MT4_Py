@@ -9,7 +9,7 @@ class MHIStrategy:
         self.ativo = ativo
         self.stop_event = threading.Event()
         self.strategy_thread = None
-        self.log = self.bot_core.log
+        self.log = self.bot_core.log_callback
 
     def start(self):
         if self.strategy_thread is None or not self.strategy_thread.is_alive():
@@ -38,7 +38,7 @@ class MHIStrategy:
     def _analisar_e_operar(self):
         try:
             velas_raw = self.bot_core.api.get_candles(self.ativo, 60, 3, time.time())
-            if len(velas_raw) < 3:
+            if velas_raw is None or len(velas_raw) < 3:
                 self.log(f"Não foi possível obter 3 velas para {self.ativo}.", "AVISO")
                 return
             cores = ['Verde' if v['open'] < v['close'] else 'Vermelha' if v['open'] > v['close'] else 'Doji' for v in velas_raw]
@@ -51,6 +51,10 @@ class MHIStrategy:
             direcao = 'put' if cores.count('Verde') > cores.count('Vermelha') else 'call' if cores.count('Vermelha') > cores.count('Verde') else None
             if direcao:
                 self.log(f"Sinal MHI: Entrada para {direcao.upper()}.", "STRATEGY")
+                # Atualiza atributos para histórico correto
+                self.last_traded_asset = self.ativo
+                self.last_trade_direction = direcao
+                self.last_trade_value = self.bot_core.valor_entrada_inicial
                 self.bot_core.executar_trade(self.ativo, direcao, 1)
             else:
                 self.log("Análise abortada: Empate de cores.", "AVISO")

@@ -304,6 +304,8 @@ class IQ_Option:
     def __get_digital_open(self):
         # for digital options
         all_data = self.get_digital_underlying_list_data()
+        if all_data is None:
+            return
         digital_data = all_data.get("underlying", []) # Usamos .get() para evitar o erro
         for digital in digital_data:
             name = digital["underlying"]
@@ -900,7 +902,7 @@ class IQ_Option:
 
         return self.api.result, self.api.buy_multi_option[req_id]["id"]
 
-    def buy(self, price, ACTIVES, ACTION, expirations):
+    def buy(self, price, ACTIVES, ACTION, expirations, timeout=15):
         self.api.buy_multi_option = {}
         self.api.buy_successful = None
         # req_id = "buy"
@@ -924,9 +926,9 @@ class IQ_Option:
                 id = self.api.buy_multi_option[req_id]["id"]
             except:
                 pass
-            if time.time() - start_t >= 5:
-                logging.error('**warning** buy late 5 sec')
-                return False, None
+            if time.time() - start_t >= timeout:
+                logging.error(f'**warning** buy late {timeout} sec')
+                return False, "Timeout"
 
         return self.api.result, self.api.buy_multi_option[req_id]["id"]
 

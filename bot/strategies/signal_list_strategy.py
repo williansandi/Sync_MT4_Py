@@ -49,6 +49,10 @@ class SignalListStrategy:
                     logging.info(f"Executando sinal: {signal}")
                     signal['status'] = 'executing'
                     
+                    # Atualiza atributos para histórico correto
+                    self.last_traded_asset = signal['asset']
+                    self.last_trade_direction = signal['action']
+                    self.last_trade_value = self.bot_core.valor_entrada_inicial
                     # Passa o ID do sinal para o bot_core
                     context = {"signal_id": signal['id']}
                     self.bot_core.executar_trade(signal['asset'], signal['action'], 1, context)

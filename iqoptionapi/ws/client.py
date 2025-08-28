@@ -60,6 +60,7 @@ from iqoptionapi.ws.received.user_profile_client import user_profile_client
 from iqoptionapi.ws.received.leaderboard_userinfo_deals_client import leaderboard_userinfo_deals_client
 from iqoptionapi.ws.received.client_price_generated import client_price_generated
 from iqoptionapi.ws.received.users_availability import users_availability
+from iqoptionapi.ws.received.digital_underlying_list import digital_underlying_list
 
 
 class WebsocketClient(object):
@@ -164,6 +165,8 @@ class WebsocketClient(object):
         leaderboard_userinfo_deals_client(self.api, message)
         users_availability(self.api, message)
         client_price_generated(self.api, message)
+        digital_underlying_list(self.api, message)
+        digital_underlying_list(self.api, message)
 
         global_value.ssl_Mutual_exclusion = False
 

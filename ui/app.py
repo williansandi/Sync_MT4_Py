@@ -4,6 +4,7 @@ import customtkinter as ctk
 from .login_frame import LoginFrame
 from .dashboard_frame import ModernDashboardFrame
 import os
+import logging
 
 class App(ctk.CTk):
     def __init__(self):
@@ -29,6 +30,19 @@ class App(ctk.CTk):
         self._frame = None
         self.switch_frame(LoginFrame)
 
+    def log_message(self, message, level="INFO"):
+        """Encaminha mensagens para o sistema de log central."""
+        if level.upper() == "INFO":
+            logging.info(message)
+        elif level.upper() == "WARNING":
+            logging.warning(message)
+        elif level.upper() == "ERROR":
+            logging.error(message)
+        elif level.upper() == "CRITICAL":
+            logging.critical(message)
+        else: # Trata 'SISTEMA' e outros como INFO
+            logging.info(message)
+
     def _on_closing(self):
         """Função chamada ao fechar a janela para um desligamento seguro."""
         # (ALTERADO) Chama o método de desligamento completo do dashboard
@@ -42,7 +56,8 @@ class App(ctk.CTk):
             self.geometry("1200x720")
             self.resizable(True, True)
             self.title("Quantum Booster | Dashboard")
-            self._frame = frame_class(self, credentials=credentials, font_family=self.font_family)
+            self._frame = frame_class(self, 
+                                      credentials=credentials,log_callback=self.log_message,font_family=self.font_family)
         else:
             self.geometry("700x500")
             self.resizable(False, False)

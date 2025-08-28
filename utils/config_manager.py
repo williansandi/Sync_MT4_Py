@@ -27,7 +27,11 @@ class ConfigManager:
                 # Seção AJUSTES
                 'tipo': 'binary', 'valor_entrada': '5', 'stop_win': '100', 'stop_loss': '100',
                 # Seção MARTINGALE
-                'usar_martingale': 'S', 'niveis_martingale': '1', 'fator_martingale': '2.1',
+                'usar_ciclos': 'S',
+                'management_type': 'agressivo',
+                'niveis_martingale': '1', 
+                'fator_martingale': '2.1',
+                'conservative_recovery_percentage': '50',
                 # Seção SOROS
                 'usar_soros': 'S', 'niveis_soros': '3',
                 # --- (NOVO) Seção Filtro de Notícias ---
@@ -38,7 +42,14 @@ class ConfigManager:
             cursor.executemany("INSERT INTO settings (key, value) VALUES (?, ?)", default_settings.items())
         
         # --- (NOVO) Adiciona as chaves de notícias se elas não existirem (para atualizações) ---
-        new_keys = {'usar_filtro_noticias': 'S', 'minutos_antes_noticia': '15', 'minutos_depois_noticia': '15'}
+        new_keys = {
+            'usar_filtro_noticias': 'S', 
+            'minutos_antes_noticia': '15', 
+            'minutos_depois_noticia': '15',
+            'management_type': 'agressivo',
+            'usar_ciclos': 'S',
+            'conservative_recovery_percentage': '50'
+        }
         for key, value in new_keys.items():
             cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, value))
 

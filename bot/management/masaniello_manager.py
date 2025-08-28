@@ -103,3 +103,19 @@ class MasanielloManager:
             "losses": self.losses_atuais,
             "status": self.status
         }
+
+    def get_status(self):
+        """
+        Retorna um dicionário com o estado atual do ciclo Masaniello.
+        Esta função serve como um "painel de informações" para a interface gráfica.
+        """
+        is_finished = self.status not in ["Aguardando Início", "Em Operação"]
+        return {
+            'current_trade': self.operacoes_realizadas,
+            'num_trades': self.N,
+            'wins_so_far': self.wins_atuais,
+            'expected_wins': self.K,
+            'current_capital': self.caixa_atual,
+            'is_finished': is_finished,
+            'result_message': self.status
+        }

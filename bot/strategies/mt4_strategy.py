@@ -55,7 +55,7 @@ class MT4Strategy:
         self.status_callback("MT4", "PARADO", "Desconectado")
 
     def _process_trade_signal(self, signal_string):
-        """Processa um sinal de trade, aplicando filtros rígidos."""
+        """Processa um sinal de trade, aplicando filtros rígidos e extraindo timeframe se possível."""
         try:
             self.bot_core.log_callback(f"Sinal recebido do MT4: '{signal_string}'", "INFO")
             sinal_upper = signal_string.upper()
@@ -72,19 +72,23 @@ class MT4Strategy:
                 return
 
             ativo = palavras[0]
+            # Detecta timeframe (ex: M1, M5, M15)
+            timeframe = 1  # padrão
+            for p in palavras:
+                if p.startswith('M') and p[1:].isdigit():
+                    timeframe = int(p[1:])
+                    break
+
             direcao = "put" if "VENDA" in palavras else "call" if "COMPRA" in palavras else None
-            
+
             if ativo and direcao:
-                self.bot_core.log_callback(f"Sinal VÁLIDO detectado! Ativo: {ativo}, Direção: {direcao}", "STRATEGY")
-                
+                self.bot_core.log_callback(f"Sinal VÁLIDO detectado! Ativo: {ativo}, Direção: {direcao}, Timeframe: {timeframe}", "STRATEGY")
                 # --- (CORREÇÃO PARA O BUG "N/A") ---
-                # Salvamos os detalhes do trade ANTES de executar a ordem
                 self.last_traded_asset = ativo
                 self.last_trade_direction = direcao
-                self.last_trade_value = self.bot_core.valor_entrada_inicial # Pega o valor da config através do bot_core
+                self.last_trade_value = self.bot_core.valor_entrada_inicial
                 # ------------------------------------
-
-                self.bot_core.executar_trade(ativo, direcao, 1)
+                self.bot_core.executar_trade(ativo, direcao, timeframe)
             else:
                 self.bot_core.log_callback(f"Não foi possível interpretar o sinal: '{signal_string}'", "AVISO")
         except Exception as e:

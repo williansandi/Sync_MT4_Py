@@ -20,28 +20,44 @@ from .components.news_scraper import get_formatted_news, fetch_structured_news
 from .components.financial_summary_card import FinancialSummaryCard
 from .components.trade_history import TradeHistoryCard
 from .components.news_card import NewsCard
-from .settings_frame import SettingsFrame
 from .signal_list_frame import SignalListFrame
 from .management_frame import ManagementFrame
 from bot.management.masaniello_manager import MasanielloManager
 
 class ModernDashboardFrame(ctk.CTkFrame):
-    def __init__(self, master, credentials, font_family="Arial"):
+    def _update_robot_status(self):
+        """
+        Atualiza o status do robô na interface, incluindo o rodapé de Estratégia Manual e Lista de Sinais.
+        """
+        if self.robot_stats['is_active']:
+            if self.robot_stats['is_paused']:
+                self.status_label.configure(text="🟡 PAUSADO", text_color=self.colors.ACCENT_GOLD)
+            else:
+                self.status_label.configure(text="🟢 ATIVO", text_color=self.colors.ACCENT_GREEN)
+        else:
+            self.status_label.configure(text="🔴 INATIVO", text_color=self.colors.ACCENT_RED)
+
+        self._update_strategy_status_bar()
+    def __init__(self, master, credentials, log_callback, font_family="Arial"):
         super().__init__(master)
-        
+
+        self.log_callback = log_callback
+
         self.font_family = font_family
         self.colors = ModernTheme
         self.fonts = AppFonts(font_family=self.font_family)
         self.credentials = credentials
         self.config_manager = ConfigManager()
-        
         self.strategy = None
         self.masaniello_manager = None
         self.frames = {}
         self.log_history = []
         self.zmq_context = zmq.Context()
         self.robot_stats = { 'is_active': False, 'is_paused': False, 'balance': 0.0, 'today_profit': 0.0, 'wins': 0, 'losses': 0 }
-        
+        self.management_frame_instance = None 
+        self.all_pairs = []
+        self.normal_pairs = []
+        self.otc_pairs = []
         self._setup_ui_layout()
         self.bot_core = self._criar_instancia_bot_core()
         self.after(200, self._conectar_iq_option_thread)
@@ -52,60 +68,101 @@ class ModernDashboardFrame(ctk.CTkFrame):
         config_dict = self.config_manager.get_all_settings()
         return IQBotCore(credentials=self.credentials, config=config_dict, log_callback=self._log_to_gui, trade_result_callback=self._on_trade_result, pair_list_callback=self._on_pair_list_update, status_callback=self._update_connection_status)
 
+    def _on_settings_saved(self):
+        """Callback que é chamado quando as configurações são salvas no ManagementFrame."""
+        self.log_callback("Configurações salvas. Recarregando lógica do robô...", "CONFIG")
+        all_settings = self.config_manager.get_all_settings()
+        if self.bot_core:
+            self.bot_core.reload_config(all_settings)
+        self.log_callback("Lógica do robô atualizada com as novas configurações.", "CONFIG")
+
+    def _on_connection_complete(self, conectado):
+        """
+        Este método é chamado na thread principal da GUI após a tentativa de conexão.
+        É o local seguro para atualizar a interface e registrar o log final.
+        """
+        if conectado:
+            self.robot_stats['balance'] = self.bot_core.api.get_balance()
+            self._update_metric_cards()
+            self.start_button.configure(state="normal", text="▶️ Iniciar")
+        else:
+            self.start_button.configure(text="Erro de Conexão")
+
     def _conectar_iq_option_thread(self):
         self.start_button.configure(state="disabled", text="Conectando...")
+
         def run_connection():
             conectado = self.bot_core.connect()
-            if conectado:
-                self.robot_stats['balance'] = self.bot_core.api.get_balance()
-                self.after(0, self._update_metric_cards)
-                self.start_button.configure(state="normal", text="▶️ Iniciar")
-            else:
-                self.start_button.configure(text="Erro de Conexão")
+            self.after(0, self._on_connection_complete, conectado)
         threading.Thread(target=run_connection, daemon=True).start()
 
     def _start_bot_clicked(self):
+        self.log_callback("1. _start_bot_clicked called", "DEBUG")
         if self.strategy and self.strategy.is_alive(): return
 
-        # Primeiro, reseta qualquer estado anterior para uma nova sessão limpa
-        self._restart_bot_clicked(is_silent=True)
+        self.log_callback("2. preparando sinais", "DEBUG")
+        strategy_name = self.strategy_option_menu.get()
+        selected_pair = self.pair_option_menu.get()
+        self.update_idletasks()
+
+        # Capture os sinais SOMENTE SE a estratégia for "Lista de Sinais"
+        signals = []
+        if strategy_name == "Lista de Sinais":
+            signal_list_frame = self.frames.get("lista")
+            signals = signal_list_frame.get_signals() if signal_list_frame else []
+
+        self.log_callback("3. restarting bot", "DEBUG")
+        # NÃO limpe a lista de sinais ao reiniciar, nem depois de iniciar a estratégia!
+        self._stop_bot_clicked()
+        if self.bot_core:
+            self.bot_core.reset_state()
+            self.robot_stats['balance'] = self.bot_core.api.get_balance()
+        self.robot_stats['today_profit'] = 0.0
+        self.robot_stats['wins'] = 0
+        self.robot_stats['losses'] = 0
+        if hasattr(self, 'history_card'): self.history_card.clear_list()
+        self._update_metric_cards()
+        self.log_callback("4. bot restarted", "DEBUG")
         self.log_callback("Iniciando nova sessão de operações...", "SISTEMA")
 
-        # Configura o gerenciamento antes de iniciar a estratégia
+        self.log_callback(f"Estratégia selecionada: {strategy_name}", "DEBUG")
+        self.log_callback(f"Par selecionado: {selected_pair}", "DEBUG")
+
         management_frame = self.frames.get("management")
         if management_frame:
+            self.log_callback("5. management frame found", "DEBUG")
             active_tab = management_frame.tab_view.get()
             if active_tab == "Masaniello":
                 try:
-                    capital = management_frame.capital_entry.get()
-                    num_trades = management_frame.num_trades_entry.get()
-                    expected_wins = management_frame.expected_wins_entry.get()
-                    payout = management_frame.payout_entry.get()
-                    # Recria a instância do Masaniello a cada início
+                    capital = management_frame.masaniello_widgets['entries']['masaniello_capital'].get()
+                    num_trades = management_frame.masaniello_widgets['entries']['masaniello_num_trades'].get()
+                    expected_wins = management_frame.masaniello_widgets['entries']['masaniello_wins_esperados'].get()
+                    payout = management_frame.masaniello_widgets['entries']['masaniello_payout'].get()
                     self.masaniello_manager = MasanielloManager(capital, num_trades, expected_wins, payout)
-                    self.bot_core.set_management_mode('masaniello', self.masaniello_manager)
+                    self.bot_core.set_active_manager('masaniello', self.masaniello_manager)
                     self.log_callback("Iniciando com Gerenciamento Masaniello!", "INFO")
                 except Exception as e:
                     self._show_popup("Erro de Configuração", f"Verifique os valores de Masaniello: {e}"); return
             else:
-                self.bot_core.set_management_mode('normal')
+                self.bot_core.set_active_manager('cycle')
                 self.log_callback("Iniciando com Gerenciamento Normal/Ciclos!", "INFO")
-        
-        strategy_name = self.strategy_option_menu.get()
-        selected_pair = self.pair_option_menu.get()
 
         if strategy_name == "MHI (Minoria)" and ("Conecte" in selected_pair or "Nenhum" in selected_pair):
             self._show_popup("Aviso", "Para MHI, selecione um par válido."); return
         if strategy_name == "Lista de Sinais":
-            signal_list_frame = self.frames.get("lista")
-            signals = signal_list_frame.get_signals() if signal_list_frame else []
-            if not signals: self._show_popup("Erro", "Nenhum arquivo de sinais foi carregado."); return
+            if not signals:
+                self._show_popup("Erro", "Nenhum arquivo de sinais foi carregado."); return
             self.strategy = SignalListStrategy(self.bot_core, signals, self._update_connection_status)
-        elif strategy_name == "Sinal MT4": self.strategy = MT4Strategy(self.bot_core, self.zmq_context, self._update_connection_status)
-        elif strategy_name == "MHI (Minoria)": self.strategy = MHIStrategy(self.bot_core, selected_pair)
-        
+            # NÃO limpe a lista visual aqui! Deixe os sinais visíveis para status.
+        elif strategy_name == "Sinal MT4":
+            self.strategy = MT4Strategy(self.bot_core, self.zmq_context, self._update_connection_status)
+        elif strategy_name == "MHI (Minoria)":
+            self.strategy = MHIStrategy(self.bot_core, selected_pair)
+
         if self.strategy:
+            self.log_callback("6. starting strategy", "DEBUG")
             self.strategy.start()
+            self.log_callback("7. strategy started", "DEBUG")
             self.robot_stats['is_active'] = True
             self.robot_stats['is_paused'] = False
             self._update_robot_status()
@@ -128,6 +185,8 @@ class ModernDashboardFrame(ctk.CTkFrame):
         self.robot_stats['is_paused'] = new_pause_state
         if self.bot_core: self.bot_core.set_pause_status(new_pause_state)
         
+        self._update_robot_status()
+
         if new_pause_state:
             self.pause_button.configure(text="Continuar", fg_color=self.colors.ACCENT_GOLD)
         else:
@@ -158,23 +217,35 @@ class ModernDashboardFrame(ctk.CTkFrame):
         self.configure(fg_color=self.colors.BG_PRIMARY); self.grid_columnconfigure(1, weight=1); self.grid_rowconfigure(1, weight=1)
         sidebar_frame = ctk.CTkFrame(self, width=200, fg_color=self.colors.BG_CARD, corner_radius=0); sidebar_frame.grid(row=0, column=0, rowspan=3, sticky="nsew")
         ctk.CTkLabel(sidebar_frame, text="🚀 QUANTUM", font=self.fonts.SIDEBAR_LOGO, text_color=self.colors.ACCENT_BLUE).pack(pady=20, padx=20)
-        buttons_info = {"dashboard": "Dashboard", "strategy": "Estratégias", "lista": "Lista de Sinais", "management": "Gerenciamento", "catalog": "Catalogador", "news": "Notícias", "settings": "Configurações"}
+        buttons_info = {"dashboard": "Dashboard", "strategy": "Estratégias", "lista": "Lista de Sinais", "management": "Gerenciamento", "catalog": "Catalogador", "news": "Notícias", "backtest": "Backtest"}
         for name, text in buttons_info.items():
-            ctk.CTkButton(sidebar_frame, text=text, image=self._load_icon(name), command=lambda n=name: self._show_frame(n), anchor="w", font=self.fonts.SIDEBAR_BUTTON, fg_color="transparent", hover_color=self.colors.BG_SECONDARY, height=40).pack(fill="x", padx=10, pady=5)
+            if name == "backtest":
+                ctk.CTkButton(sidebar_frame, text=text, image=None, command=self._abrir_backtest_pyqt, anchor="w", font=self.fonts.SIDEBAR_BUTTON, fg_color="transparent", hover_color=self.colors.BG_SECONDARY, height=40).pack(fill="x", padx=10, pady=5)
+            else:
+                ctk.CTkButton(sidebar_frame, text=text, image=self._load_icon(name), command=lambda n=name: self._show_frame(n), anchor="w", font=self.fonts.SIDEBAR_BUTTON, fg_color="transparent", hover_color=self.colors.BG_SECONDARY, height=40).pack(fill="x", padx=10, pady=5)
         self._create_header()
         self.main_content_frame = ctk.CTkFrame(self, fg_color="transparent"); self.main_content_frame.grid(row=1, column=1, sticky="nsew", padx=10, pady=(0, 10)); self.main_content_frame.grid_rowconfigure(0, weight=1); self.main_content_frame.grid_columnconfigure(0, weight=1)
         self._create_status_bar()
 
+    def _abrir_backtest_pyqt(self):
+        import subprocess
+        import sys
+        import os
+        # Caminho absoluto para o script run_backtest.py
+        script_path = os.path.join(os.path.dirname(__file__), 'run_backtest.py')
+        python_exe = sys.executable
+        subprocess.Popen([python_exe, script_path])
+
     def _create_all_frames(self):
-        for frame_name in ["dashboard", "strategy", "lista", "management", "catalog", "news", "settings"]:
+        for frame_name in ["dashboard", "strategy", "lista", "management", "catalog", "news"]:
             frame = None
             if frame_name == "dashboard": frame = self._create_dashboard_frame()
             elif frame_name == "strategy": frame = self._create_strategy_frame()
             elif frame_name == "lista": frame = SignalListFrame(self.main_content_frame)
-            elif frame_name == "management": frame = ManagementFrame(self.main_content_frame, self.config_manager)
+            elif frame_name == "management":
+                frame = ManagementFrame(self.main_content_frame, self.config_manager, save_callback=self._on_settings_saved)
             elif frame_name == "catalog": frame = self._create_catalog_frame()
             elif frame_name == "news": frame = self._create_news_frame()
-            elif frame_name == "settings": frame = SettingsFrame(self.main_content_frame, self.config_manager)
             self.frames[frame_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
@@ -204,14 +275,11 @@ class ModernDashboardFrame(ctk.CTkFrame):
             if signal_list_frame:
                 signal_list_frame.update_signal_status(signal_id, result_info)
         
-        if self.bot_core and self.bot_core.management_mode == 'masaniello' and self.bot_core.masaniello_manager:
+        if self.bot_core and getattr(self.bot_core, 'active_manager', None) == 'masaniello' and self.bot_core.masaniello_manager:
             status = self.bot_core.masaniello_manager.get_status()
             management_frame = self.frames.get("management")
-            if management_frame:
-                management_frame.progress_label_masa.configure(text=f"Progresso: {status['current_trade']}/{status['num_trades']} | Wins: {status['wins_so_far']}/{status['expected_wins']}")
-                management_frame.capital_entry.delete(0, 'end'); management_frame.capital_entry.insert(0, f"{status['current_capital']:.2f}")
-                if status['is_finished']:
-                    management_frame.status_label_masa.configure(text=f"Status: {status['result_message']}")
+            if management_frame and hasattr(management_frame, 'update_masaniello_status'):
+                self.after(0, management_frame.update_masaniello_status, status)
         
         if foi_executado:
             self.robot_stats['today_profit'] += profit
@@ -227,6 +295,7 @@ class ModernDashboardFrame(ctk.CTkFrame):
             except Exception as e:
                 logging.warning(f"Não foi possível adicionar trade ao histórico: {e}")
         
+        self._update_strategy_status_bar()
         self.after(0, self._update_metric_cards)
     
     def _create_dashboard_frame(self):
@@ -306,20 +375,42 @@ class ModernDashboardFrame(ctk.CTkFrame):
         self.iq_status_label = ctk.CTkLabel(status_bar_frame, text="IQ Option: Aguardando", font=self.fonts.BODY_SMALL, text_color=self.colors.TEXT_MUTED); self.iq_status_label.pack(side="left", pady=5)
         self.mt4_status_indicator = ctk.CTkLabel(status_bar_frame, text="●", text_color="gray", font=("Arial", 16)); self.mt4_status_indicator.pack(side="left", padx=(20, 2), pady=5)
         self.mt4_status_label = ctk.CTkLabel(status_bar_frame, text="MT4: Aguardando", font=self.fonts.BODY_SMALL, text_color=self.colors.TEXT_MUTED); self.mt4_status_label.pack(side="left", pady=5)
+        # Novos status: Estratégia Manual e Lista de Sinais
+        self.manual_status_indicator = ctk.CTkLabel(status_bar_frame, text="●", text_color="gray", font=("Arial", 16)); self.manual_status_indicator.pack(side="left", padx=(20, 2), pady=5)
+        self.manual_status_label = ctk.CTkLabel(status_bar_frame, text="Estratégia Manual: Inativa", font=self.fonts.BODY_SMALL, text_color=self.colors.TEXT_MUTED); self.manual_status_label.pack(side="left", pady=5)
+        self.signallist_status_indicator = ctk.CTkLabel(status_bar_frame, text="●", text_color="gray", font=("Arial", 16)); self.signallist_status_indicator.pack(side="left", padx=(20, 2), pady=5)
+        self.signallist_status_label = ctk.CTkLabel(status_bar_frame, text="Lista de Sinais: Inativa", font=self.fonts.BODY_SMALL, text_color=self.colors.TEXT_MUTED); self.signallist_status_label.pack(side="left", pady=5)
 
     def _update_connection_status(self, component, status, message):
         colors = {"CONECTADO": self.colors.ACCENT_GREEN, "RECONECTANDO": self.colors.ACCENT_GOLD, "DESCONECTADO": self.colors.ACCENT_RED, "ERRO": self.colors.ACCENT_RED, "PARADO": "gray"}
         color = colors.get(status, "gray")
-        if component == "IQ": indicator, label, prefix = self.iq_status_indicator, self.iq_status_label, "IQ Option: "
-        elif component == "MT4": indicator, label, prefix = self.mt4_status_indicator, self.mt4_status_label, "MT4: "
-        else: return
+        if component == "IQ":
+            indicator, label, prefix = self.iq_status_indicator, self.iq_status_label, "IQ Option: "
+        elif component == "MT4":
+            indicator, label, prefix = self.mt4_status_indicator, self.mt4_status_label, "MT4: "
+        elif component == "MANUAL":
+            indicator, label, prefix = self.manual_status_indicator, self.manual_status_label, "Estratégia Manual: "
+        elif component == "SIGNALLIST":
+            indicator, label, prefix = self.signallist_status_indicator, self.signallist_status_label, "Lista de Sinais: "
+        else:
+            return
         indicator.configure(text_color=color)
         label.configure(text=f"{prefix}{message}")
-    
-    def _update_robot_status(self):
-        if self.robot_stats['is_active']: self.status_label.configure(text="🟢 ATIVO", text_color=self.colors.ACCENT_GREEN)
-        else: self.status_label.configure(text="🔴 INATIVO", text_color=self.colors.ACCENT_RED)
-    
+
+    def _update_strategy_status_bar(self):
+        from bot.strategies.mhi_strategy import MHIStrategy
+        from bot.strategies.signal_list_strategy import SignalListStrategy
+        manual_active = isinstance(self.strategy, MHIStrategy)
+        signallist_active = isinstance(self.strategy, SignalListStrategy)
+        if manual_active:
+            self._update_connection_status("MANUAL", "CONECTADO", "Ativa")
+        else:
+            self._update_connection_status("MANUAL", "PARADO", "Inativa")
+        if signallist_active:
+            self._update_connection_status("SIGNALLIST", "CONECTADO", "Ativa")
+        else:
+            self._update_connection_status("SIGNALLIST", "PARADO", "Inativa")
+
     def _create_page_header(self, parent, title):
         header = ctk.CTkFrame(parent, fg_color=self.colors.BG_CARD, corner_radius=10, height=60); header.pack(fill="x")
         header.pack_propagate(False); ctk.CTkLabel(header, text=title, font=self.fonts.PAGE_TITLE).pack(side="left", padx=20, pady=15)

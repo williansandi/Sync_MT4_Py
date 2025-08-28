@@ -12,5 +12,6 @@ class AppFonts:
         self.SIDEBAR_BUTTON = (self.FAMILY, 14, "bold")
         self.BUTTON = (self.FAMILY, 12, "bold")
         self.BODY_NORMAL = (self.FAMILY, 14, "normal")
+        self.BODY_BOLD = (self.FAMILY, 14, "bold")
         self.BODY_SMALL = (self.FAMILY, 12, "normal")
         self.CONSOLE = ("Consolas", 12)
