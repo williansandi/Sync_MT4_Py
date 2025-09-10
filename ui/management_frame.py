@@ -97,9 +97,6 @@ class ManagementFrame(ctk.CTkFrame):
         self.general_widgets["entries"]["minutos_antes_noticia"] = self._create_row(tab, 6, "Pausar Antes de Notícia (min)")
         self.general_widgets["entries"]["minutos_depois_noticia"] = self._create_row(tab, 7, "Pausar Depois de Notícia (min)")
 
-        ctk.CTkLabel(tab, text="OPERAÇÕES DIGITAIS", font=self.fonts.CARD_TITLE).grid(row=8, column=0, columnspan=2, sticky="w", padx=20, pady=(15, 5))
-        self.general_widgets["buttons"]["usar_maior_payout_digital"] = self._create_row(tab, 9, "Operar com Maior Payout (Digital)", is_segmented=True)
-
     def _load_settings(self):
         current_config = self.config_manager.get_all_settings()
         for widget_group in self.all_widgets:

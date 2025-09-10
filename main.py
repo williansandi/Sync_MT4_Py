@@ -1,4 +1,5 @@
 # main.py
+import tkinter.font
 
 from ui.app import App
 from utils.logger import setup_logger

@@ -1,11 +1,11 @@
-# utils/config_manager.py
-
 import sqlite3
 import logging
+from .path_resolver import resource_path
 
 class ConfigManager:
     def __init__(self, db_path='config.db'):
-        self.db_path = db_path
+        # Garante que o caminho para o DB seja sempre absoluto a partir da raiz do projeto
+        self.db_path = resource_path(db_path)
         self._setup_database()
 
     def _setup_database(self):

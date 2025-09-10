@@ -54,14 +54,15 @@ class ConnectionManager:
                         self.status_callback("IQ", "CONECTADO", "Online")
                         self.log_callback("Conexão com a IQ Option está saudável.", "INFO")
                 except Exception as e:
-                    self.is_connected = False
-                    self.log_callback(f"Health Check falhou, mesmo com check_connect() True. Erro: {e}", "AVISO")
-                    self._trigger_reconnection()
+                    if self.is_connected:
+                        self.is_connected = False
+                        self.log_callback(f"Health Check falhou, mesmo com check_connect() True. Erro: {e}", "AVISO")
+                        self._trigger_reconnection()
             else:
                 if self.is_connected:
                     self.is_connected = False
                     self.log_callback("Conexão com a IQ Option perdida.", "AVISO")
-                self._trigger_reconnection()
+                    self._trigger_reconnection()
             
             # Verifica a cada 10 segundos
             self.stop_event.wait(10)

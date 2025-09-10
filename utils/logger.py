@@ -18,7 +18,7 @@ def setup_logger():
 
     # Configura o handler para rotacionar o arquivo de log quando ele atingir 5MB
     # Mantém até 5 arquivos de backup.
-    handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=5)
+    handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8')
     handler.setFormatter(log_formatter)
 
     # Pega o logger raiz e adiciona o handler

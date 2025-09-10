@@ -13,6 +13,8 @@ class SignalListStrategy:
         self.stop_event = threading.Event()
         self.strategy_thread = None
         self.is_running = False
+        self.last_traded_asset = None
+        self.last_trade_direction = None
 
     def is_alive(self):
         return self.is_running
@@ -28,6 +30,7 @@ class SignalListStrategy:
     def stop(self):
         self.is_running = False
         self.stop_event.set()
+        if self.strategy_thread: self.strategy_thread.join(timeout=2)
         self.bot_core.log_callback("Estratégia de Lista de Sinais parada.", "STRATEGY")
 
     def _run_loop(self):
@@ -40,7 +43,6 @@ class SignalListStrategy:
             for signal in self.signals:
                 if signal['status'] == 'pending' and signal['time'] == current_time_str:
                     
-                    # Evita re-entrar no mesmo minuto se a vela já virou
                     if now.second > 3: 
                         signal['status'] = 'expired'
                         self.bot_core.log_callback(f"Sinal {signal['asset']} às {signal['time']} expirou (vela virou).", "AVISO")
@@ -49,14 +51,12 @@ class SignalListStrategy:
                     logging.info(f"Executando sinal: {signal}")
                     signal['status'] = 'executing'
                     
-                    # Atualiza atributos para histórico correto
+                    context = {"signal_id": signal['id']}
                     self.last_traded_asset = signal['asset']
                     self.last_trade_direction = signal['action']
-                    self.last_trade_value = self.bot_core.valor_entrada_inicial
-                    # Passa o ID do sinal para o bot_core
-                    context = {"signal_id": signal['id']}
+                    # A chamada agora é direta e não bloqueante, apenas enfileira o trade
                     self.bot_core.executar_trade(signal['asset'], signal['action'], 1, context)
             
-            time.sleep(1) # Verifica a cada segundo
+            time.sleep(1)
         
         logging.info("Loop da lista de sinais finalizado.")

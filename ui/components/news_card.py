@@ -65,10 +65,18 @@ class NewsCard(ctk.CTkFrame):
         event_label.grid(row=0, column=3, sticky="w", pady=0, padx=10)
 
     def populate_news(self, news_data):
-        """Limpa o frame e o preenche com os novos cards de notícia."""
-        # Limpa os cards antigos
-        for widget in self.scrollable_frame.winfo_children():
-            widget.destroy()
+        # Check if the NewsCard itself exists before proceeding
+        if not self.winfo_exists(): # Check the parent NewsCard
+            return
+
+        # Destroy the old scrollable_frame and recreate it
+        if hasattr(self, 'scrollable_frame') and self.scrollable_frame.winfo_exists():
+            self.scrollable_frame.destroy()
+        
+        self.scrollable_frame = ctk.CTkScrollableFrame(self, fg_color="transparent", label_text="")
+        self.scrollable_frame.grid(row=1, column=0, sticky="nsew", pady=(10, 0))
+        
+        # No need for update_idletasks here as the frame is new
 
         if not news_data:
             ctk.CTkLabel(self.scrollable_frame, text="Nenhuma notícia de impacto encontrada.").pack(pady=20)

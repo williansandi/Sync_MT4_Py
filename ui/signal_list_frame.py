@@ -52,7 +52,7 @@ class SignalListFrame(ctk.CTkFrame):
                         self.signals.append({
                             "id": str(uuid.uuid4()), 
                             "time": parts[0], 
-                            "asset": parts[1].upper(), 
+                            "asset": parts[1],  # Mantém o nome do ativo exatamente como está no arquivo
                             "action": action, 
                             "status": "pending"
                         })

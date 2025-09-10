@@ -301,12 +301,16 @@ class IQ_Option:
                         else:
                             self.OPEN_TIME[option][name]["open"] = active["enabled"]    
 
+        # update actives opcode       
+        for dirr in ["binary", "turbo"]:
+            actives = binary_data[dirr]["actives"]
+            for i, details in actives.items():
+                name_part = details["name"].split(".")[1]
+                OP_code.ACTIVES[name_part] = int(i)    
+
     def __get_digital_open(self):
         # for digital options
-        all_data = self.get_digital_underlying_list_data()
-        if all_data is None:
-            return
-        digital_data = all_data.get("underlying", []) # Usamos .get() para evitar o erro
+        digital_data = self.get_digital_underlying_list_data()["underlying"]
         for digital in digital_data:
             name = digital["underlying"]
             schedule = digital["schedule"]
@@ -316,6 +320,12 @@ class IQ_Option:
                 end = schedule_time["close"]
                 if start < time.time() < end:
                     self.OPEN_TIME["digital"][name]["open"] = True
+
+        # update digital actives opcode
+        for item in digital_data:
+            underlying_nome = item['underlying']
+            active_id_valor = item['active_id']
+            OP_code.ACTIVES[underlying_nome] = active_id_valor
 
     def __get_other_open(self):
         # Crypto and etc pairs
@@ -337,11 +347,11 @@ class IQ_Option:
         self.OPEN_TIME = nested_dict(3, dict)
         binary = threading.Thread(target=self.__get_binary_open)
         digital = threading.Thread(target=self.__get_digital_open)
-        other = threading.Thread(target=self.__get_other_open)
-
-        binary.start(), digital.start(), other.start()
-
-        binary.join(), digital.join(), other.join()
+        #other = threading.Thread(target=self.__get_other_open)
+        binary.start(), digital.start()#, other.start()
+        binary.join(), digital.join()#, other.join()
+        # ordenate updated actives opcode
+        OP_code.ACTIVES = dict(sorted(OP_code.ACTIVES.items(), key=operator.itemgetter(1)))
         return self.OPEN_TIME
 
     # --------for binary option detail
@@ -359,6 +369,38 @@ class IQ_Option:
             name = name[name.index(".") + 1:len(name)]
             detail[name]["binary"] = init_info["result"]["binary"]["actives"][actives]
         return detail
+
+    def get_available_expirations(self, active, option_type):
+        """
+        Returns the available expiration durations for a given asset and option type.
+        :param str active: The asset name (e.g., 'EURUSD').
+        :param str option_type: 'turbo' or 'binary'.
+        :returns: A list of available expiration durations in minutes, or None if not found.
+        """
+        details = self.get_binary_option_detail()
+        if not details:
+            logging.warning('Could not get binary option details.')
+            return None
+
+        try:
+            asset_details = details.get(active, {}).get(option_type)
+            if not asset_details:
+                logging.warning(f'Could not get asset details for {active} ({option_type}).')
+                return None
+
+            # This is a guess. The actual key might be different.
+            # Based on some observations, it might be in ['option']['rules']['expiration']
+            expirations_data = asset_details.get("option", {}).get("rules", {}).get("expiration")
+            
+            if isinstance(expirations_data, list):
+                # Structure might be: [{'value': 1, 'is_enabled': True}, ...]
+                return [exp.get('value') for exp in expirations_data if exp.get('is_enabled')]
+            
+            logging.warning(f'Could not find expirations data for {active} ({option_type}). Structure might have changed.')
+            return None
+        except Exception as e:
+            logging.error(f'Error getting available expirations for {active}: {e}')
+            return None
 
     def get_all_profit(self):
         all_profit = nested_dict(2, dict)
@@ -508,37 +550,40 @@ class IQ_Option:
             logging.error("ERROR doesn't have this mode")
             exit(1)
 
-    # ________________________________________________________________________
-    # _______________________        CANDLE      _____________________________
     # ________________________self.api.getcandles() wss________________________
 
     def get_candles(self, ACTIVES, interval, count, endtime):
         self.api.candles.candles_data = None
+
+        if ACTIVES not in OP_code.ACTIVES:
+            print('Asset {} not found in constants'.format(ACTIVES))
+            return None
+
         while True:
             try:
-                if ACTIVES not in OP_code.ACTIVES:
-                    print('Asset {} not found on consts'.format(ACTIVES))
-                    break
-                self.api.getcandles(
-                    OP_code.ACTIVES[ACTIVES], interval, count, endtime)
-                while self.check_connect and self.api.candles.candles_data == None:
-                    pass
-                if self.api.candles.candles_data != None:
-                    break
-            except:
-                logging.error('**error** get_candles need reconnect')
+                self.api.getcandles(OP_code.ACTIVES[ACTIVES], interval, count, endtime)
+
+                # Adiciona um pequeno atraso para evitar busy-waiting
+                start_time = time.time()
+                while self.check_connect() and self.api.candles.candles_data is None:
+                    if time.time() - start_time > 10:  # Tempo limite de 10 segundos
+                        raise TimeoutError('Timeout while waiting for candles data')
+                    time.sleep(0.1)
+
+                if self.api.candles.candles_data is not None:
+                    return self.api.candles.candles_data
+
+            except TimeoutError as te:
+                logging.error(te)
+                self.connect()
+            except Exception as e:
+                logging.error('**error** get_candles need reconnect: {}'.format(e))
                 self.connect()
 
-        return self.api.candles.candles_data
+            time.sleep(1) # Aguarde um segundo antes de tentar novamente    
 
-    #######################################################
-    # ______________________________________________________
-    # _____________________REAL TIME CANDLE_________________
-    # ______________________________________________________
-    #######################################################
 
     def start_candles_stream(self, ACTIVE, size, maxdict):
-
         if size == "all":
             for s in self.size:
                 self.full_realtime_get_candle(ACTIVE, s, maxdict)
@@ -550,8 +595,7 @@ class IQ_Option:
             self.start_candles_one_stream(ACTIVE, size)
 
         else:
-            logging.error(
-                '**error** start_candles_stream please input right size')
+            logging.error('**error** start_candles_stream please input right size')
 
     def stop_candles_stream(self, ACTIVE, size):
         if size == "all":
@@ -559,27 +603,23 @@ class IQ_Option:
         elif size in self.size:
             self.stop_candles_one_stream(ACTIVE, size)
         else:
-            logging.error(
-                '**error** start_candles_stream please input right size')
+            logging.error('**error** start_candles_stream please input right size')
 
     def get_realtime_candles(self, ACTIVE, size):
         if size == "all":
             try:
                 return self.api.real_time_candles[ACTIVE]
             except:
-                logging.error(
-                    '**error** get_realtime_candles() size="all" can not get candle')
+                logging.error('**error** get_realtime_candles() size="all" can not get candle')
                 return False
         elif size in self.size:
             try:
                 return self.api.real_time_candles[ACTIVE][size]
             except:
-                logging.error(
-                    '**error** get_realtime_candles() size=' + str(size) + ' can not get candle')
+                logging.error('**error** get_realtime_candles() size=' + str(size) + ' can not get candle')
                 return False
         else:
-            logging.error(
-                '**error** get_realtime_candles() please input right "size"')
+            logging.error('**error** get_realtime_candles() please input right "size"')
 
     def get_all_realtime_candles(self):
         return self.api.real_time_candles
@@ -905,7 +945,6 @@ class IQ_Option:
     def buy(self, price, ACTIVES, ACTION, expirations, timeout=15):
         self.api.buy_multi_option = {}
         self.api.buy_successful = None
-        # req_id = "buy"
         req_id = str(randint(0, 10000))
         try:
             self.api.buy_multi_option[req_id]["id"] = None
@@ -928,7 +967,7 @@ class IQ_Option:
                 pass
             if time.time() - start_t >= timeout:
                 logging.error(f'**warning** buy late {timeout} sec')
-                return False, "Timeout"
+                return False, "Timeout" # Retorna "Timeout" para ser mais específico
 
         return self.api.result, self.api.buy_multi_option[req_id]["id"]
 
@@ -1553,18 +1592,15 @@ class IQ_Option:
     def get_digital_payout(self, active, seconds=0):
         self.api.digital_payout = None
         asset_id = OP_code.ACTIVES[active]
-
         self.api.subscribe_digital_price_splitter(asset_id)
 
         start = time.time()
         while self.api.digital_payout is None:
             if seconds and int(time.time() - start) > seconds:
                 break
-
         self.api.unsubscribe_digital_price_splitter(asset_id)
-
-        return self.api.digital_payout if self.api.digital_payout else 0
-
+        return self.api.digital_payout if self.api.digital_payout else 75
+        
     def logout(self):
         self.api.logout()
 

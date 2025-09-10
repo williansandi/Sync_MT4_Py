@@ -16,7 +16,6 @@ executing==2.2.0
 fastjsonschema==2.21.2
 idna==3.10
 ipython==8.12.3
-iqoptionapi==0.5
 jedi==0.19.2
 Jinja2==3.1.6
 jsonschema==4.25.1
@@ -58,4 +57,3 @@ wcwidth==0.2.13
 webencodings==0.5.1
 websocket-client==1.5.1
 yarg==0.1.9
-zmq==0.0.0

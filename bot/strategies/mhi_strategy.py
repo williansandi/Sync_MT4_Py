@@ -10,6 +10,8 @@ class MHIStrategy:
         self.stop_event = threading.Event()
         self.strategy_thread = None
         self.log = self.bot_core.log_callback
+        self.last_traded_asset = None
+        self.last_trade_direction = None
 
     def start(self):
         if self.strategy_thread is None or not self.strategy_thread.is_alive():
@@ -51,10 +53,9 @@ class MHIStrategy:
             direcao = 'put' if cores.count('Verde') > cores.count('Vermelha') else 'call' if cores.count('Vermelha') > cores.count('Verde') else None
             if direcao:
                 self.log(f"Sinal MHI: Entrada para {direcao.upper()}.", "STRATEGY")
-                # Atualiza atributos para histórico correto
                 self.last_traded_asset = self.ativo
                 self.last_trade_direction = direcao
-                self.last_trade_value = self.bot_core.valor_entrada_inicial
+                # A chamada agora é direta e não bloqueante, apenas enfileira o trade
                 self.bot_core.executar_trade(self.ativo, direcao, 1)
             else:
                 self.log("Análise abortada: Empate de cores.", "AVISO")
