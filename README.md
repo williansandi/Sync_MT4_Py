@@ -1,27 +1,30 @@
-# SyncMT4 V3
+# SyncMT4: Trading Robot with IQ Option & MetaTrader Integration
 
 [![Status do Projeto](https://img.shields.io/badge/status-em%20desenvolvimento-yellowgreen.svg)](https://shields.io/)
 [![Licença](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
 
-Uma breve descrição do seu projeto em uma linha. 
-Ex: Ferramenta para sincronizar operações e sinais entre MetaTrader 4/5 e a plataforma IQ Option.
+A robust Python-based trading robot designed for seamless integration with IQ Option and MetaTrader platforms. Features include advanced UI for monitoring, secure credential management, and optimized trading strategies.
 
 ## 📖 Sobre o Projeto
 
 O **SyncMT4** é uma solução robusta para traders que desejam automatizar ou espelhar suas operações entre o MetaTrader e a IQ Option. Utilizando a velocidade e a confiabilidade da biblioteca de mensageria ZeroMQ, este projeto permite uma comunicação de baixa latência entre um Expert Advisor (EA) ou script rodando no MQL e uma aplicação Python que interage com a API da IQ Option.
 
 **Principais Funcionalidades:**
-*   [Ex: Recebimento de sinais de um EA no MT4 e execução na IQ Option.]
-*   [Ex: Sincronização de estado de ordens entre as duas plataformas.]
-*   [Ex: Gerenciamento de risco e configurações personalizáveis.]
-*   [Adicione outras funcionalidades importantes aqui.]
+*   **Interface Gráfica Moderna (CustomTkinter):** Navegação fluida e monitoramento em tempo real de operações, estatísticas e logs.
+*   **Integração com MetaTrader (via ZeroMQ):** Recebimento de sinais e execução de operações baseadas em estratégias do MT4.
+*   **Gerenciamento de Credenciais Seguro:** Armazenamento de senhas criptografadas (Base64) para maior proteção.
+*   **Robustez de Caminhos:** Localização automática de arquivos essenciais (config.db, fontes, etc.) independentemente do diretório de execução.
+*   **Estratégias de Gerenciamento:** Suporte a ciclos de Martingale otimizados e gerenciamento de banca (Masaniello).
+*   **Notícias Financeiras:** Integração para busca e exibição de notícias relevantes.
+*   **Exportação de Pares:** Funcionalidade para exportar listas de pares de moedas para o MT4.
 
 ### 🛠️ Construído Com
 
 *   [Python](https://www.python.org/)
+*   [CustomTkinter](https://customtkinter.tomschimansky.com/)
 *   [IQ Option API](https://github.com/iqoptionapi/iqoptionapi)
-*   [mql-zmq](https://github.com/dingmaotu/mql-zmq) - Binding ZeroMQ para MQL
 *   [ZeroMQ](https://zeromq.org/)
+*   [mql-zmq](https://github.com/dingmaotu/mql-zmq) - Binding ZeroMQ para MQL
 
 ---
 
@@ -35,14 +38,14 @@ Para que o projeto funcione, você precisará ter os seguintes softwares instala
 
 *   **Python 3.8+**
 *   **MetaTrader 4 ou 5**
-*   **Biblioteca ZeroMQ**: As DLLs pré-compiladas (`libsodium.dll` e `libzmq.dll`) devem ser colocadas no diretório `Libraries` do seu terminal MetaTrader. Consulte a documentação do mql-zmq para mais detalhes.
+*   **Biblioteca ZeroMQ para MT4**: As DLLs pré-compiladas (`libsodium.dll` e `libzmq.dll`) devem ser colocadas no diretório `Libraries` do seu terminal MetaTrader. Consulte a documentação do [mql-zmq](https://github.com/dingmaotu/mql-zmq) para mais detalhes sobre a instalação no MT4.
 
 ### ⚙️ Instalação
 
 1.  **Clone o repositório:**
     ```sh
-    git clone https://github.com/seu-usuario/SyncMT4.git
-    cd SyncMT4
+    git clone https://github.com/williansandi/Sync_MT4_Py.git
+    cd Sync_MT4_Py
     ```
 
 2.  **Crie e ative um ambiente virtual (Recomendado):**
@@ -58,38 +61,33 @@ Para que o projeto funcione, você precisará ter os seguintes softwares instala
     ```sh
     pip install -r requirements.txt
     ```
-    *(Observação: Se você ainda não tem um arquivo `requirements.txt`, posso te ajudar a criar um!)*
 
 4.  **Configure o lado do MetaTrader (MQL):**
-    *   Copie os arquivos do Expert Advisor/Script (ex: `SyncMT4.mq4`) para a pasta `MQL4/Experts` (ou `MQL5/Experts`) do seu terminal.
-    *   Copie os arquivos de include do `mql-zmq` para a pasta `MQL4/Include`.
-    *   Compile o EA no MetaEditor.
+    Certifique-se de que seu Expert Advisor (EA) ou script MQL está configurado para se comunicar via ZeroMQ. Copie os arquivos MQL relevantes (ex: `SyncMT4.mq4` e includes do `mql-zmq`) para as pastas apropriadas do seu terminal MetaTrader (`MQL4/Experts`, `MQL4/Include`, etc.) e compile-os.
 
 ---
 
 ## 📈 Uso
 
-Para iniciar a sincronização, siga os passos:
+Para iniciar o robô e a interface gráfica, siga os passos:
 
 1.  **Inicie o Expert Advisor no MetaTrader:**
     Anexe o EA a um gráfico de sua preferência. Certifique-se de que o "AutoTrading" está habilitado no terminal.
 
-2.  **Execute o script Python:**
-    Abra um terminal, ative o ambiente virtual e execute o cliente Python.
+2.  **Execute a Aplicação Python:**
+    Abra um terminal, ative o ambiente virtual e execute o script principal:
     ```sh
-    python bot/bot_core.py --usuario "seu-email" --senha "sua-senha"
+    python main.py
     ```
-
-**Exemplo de configuração:**
-[Você pode adicionar aqui uma seção sobre como configurar um arquivo `.env` ou `config.ini` para gerenciar credenciais e outras configurações de forma segura, em vez de passá-las pela linha de comando.]
+    A interface gráfica será iniciada. Insira suas credenciais da IQ Option na tela de login. As credenciais serão salvas de forma segura para futuros acessos.
 
 ---
 
 ## 🗺️ Roadmap
 
+*   [x] Criar uma interface gráfica simples para monitoramento.
 *   [ ] Implementar gerenciamento de risco "Sorosgale".
 *   [ ] Adicionar suporte a múltiplos pares de moedas simultaneamente.
-*   [ ] Criar uma interface gráfica simples para monitoramento.
 
 Veja as issues abertas para uma lista completa de funcionalidades propostas (e bugs conhecidos).
 
@@ -115,6 +113,6 @@ Distribuído sob a Licença MIT. Veja `LICENSE` para mais informações.
 
 ## 📧 Contato
 
-Seu Nome - @seu_twitter - seu.email@exemplo.com
+Willian Sandi - williansandi@gmail.com
 
-Link do Projeto: https://github.com/seu-usuario/SyncMT4
+Link do Projeto: https://github.com/williansandi/Sync_MT4_Py.git
