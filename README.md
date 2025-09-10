@@ -1,54 +1,54 @@
 # SyncMT4: Trading Robot with IQ Option & MetaTrader Integration
 
-[![Status do Projeto](https://img.shields.io/badge/status-em%20desenvolvimento-yellowgreen.svg)](https://shields.io/)
-[![Licença](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+[![Project Status](https://img.shields.io/badge/status-in%20development-yellowgreen.svg)](https://shields.io/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
 
-A robust Python-based trading robot designed for seamless integration with IQ Option and MetaTrader platforms. Features include advanced UI for monitoring, secure credential management, and optimized trading strategies.
+A robust Python-based trading robot designed for seamless integration with IQ Option and MetaTrader platforms. Features include an advanced UI for monitoring, secure credential management, and optimized trading strategies.
 
-## 📖 Sobre o Projeto
+## 📖 About The Project
 
-O **SyncMT4** é uma solução robusta para traders que desejam automatizar ou espelhar suas operações entre o MetaTrader e a IQ Option. Utilizando a velocidade e a confiabilidade da biblioteca de mensageria ZeroMQ, este projeto permite uma comunicação de baixa latência entre um Expert Advisor (EA) ou script rodando no MQL e uma aplicação Python que interage com a API da IQ Option.
+**SyncMT4** is a robust solution for traders looking to automate or mirror their operations between MetaTrader and IQ Option. Leveraging the speed and reliability of the ZeroMQ messaging library, this project enables low-latency communication between an Expert Advisor (EA) or script running in MQL and a Python application that interacts with the IQ Option API.
 
-**Principais Funcionalidades:**
-*   **Interface Gráfica Moderna (CustomTkinter):** Navegação fluida e monitoramento em tempo real de operações, estatísticas e logs.
-*   **Integração com MetaTrader (via ZeroMQ):** Recebimento de sinais e execução de operações baseadas em estratégias do MT4.
-*   **Gerenciamento de Credenciais Seguro:** Armazenamento de senhas criptografadas (Base64) para maior proteção.
-*   **Robustez de Caminhos:** Localização automática de arquivos essenciais (config.db, fontes, etc.) independentemente do diretório de execução.
-*   **Estratégias de Gerenciamento:** Suporte a ciclos de Martingale otimizados e gerenciamento de banca (Masaniello).
-*   **Notícias Financeiras:** Integração para busca e exibição de notícias relevantes.
-*   **Exportação de Pares:** Funcionalidade para exportar listas de pares de moedas para o MT4.
+**Key Features:**
+*   **Modern Graphical Interface (CustomTkinter):** Fluid navigation and real-time monitoring of operations, statistics, and logs.
+*   **MetaTrader Integration (via ZeroMQ):** Receive signals and execute trades based on MT4 strategies.
+*   **Secure Credential Management:** Encrypted password storage (Base64) for enhanced protection.
+*   **Robust Path Handling:** Automatic location of essential files (config.db, fonts, etc.) regardless of the execution directory.
+*   **Strategy Management:** Support for optimized Martingale cycles and money management (Masaniello).
+*   **Financial News:** Integration for fetching and displaying relevant news.
+*   **Pair Export:** Functionality to export currency pair lists to MT4.
 
-### 🛠️ Construído Com
+### 🛠️ Built With
 
 *   [Python](https://www.python.org/)
 *   [CustomTkinter](https://customtkinter.tomschimansky.com/)
 *   [IQ Option API](https://github.com/iqoptionapi/iqoptionapi)
 *   [ZeroMQ](https://zeromq.org/)
-*   [mql-zmq](https://github.com/dingmaotu/mql-zmq) - Binding ZeroMQ para MQL
+*   [mql-zmq](https://github.com/dingmaotu/mql-zmq) - ZeroMQ Binding for MQL
 
 ---
 
-## 🚀 Começando
+## 🚀 Getting Started
 
-Siga estas instruções para ter uma cópia do projeto rodando na sua máquina local para desenvolvimento e testes.
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
-### ✅ Pré-requisitos
+### ✅ Prerequisites
 
-Para que o projeto funcione, você precisará ter os seguintes softwares instalados:
+To run the project, you will need the following software installed:
 
 *   **Python 3.8+**
-*   **MetaTrader 4 ou 5**
-*   **Biblioteca ZeroMQ para MT4**: As DLLs pré-compiladas (`libsodium.dll` e `libzmq.dll`) devem ser colocadas no diretório `Libraries` do seu terminal MetaTrader. Consulte a documentação do [mql-zmq](https://github.com/dingmaotu/mql-zmq) para mais detalhes sobre a instalação no MT4.
+*   **MetaTrader 4 or 5**
+*   **ZeroMQ Library for MT4**: Pre-compiled DLLs (`libsodium.dll` and `libzmq.dll`) must be placed in the `Libraries` directory of your MetaTrader terminal. Refer to the [mql-zmq](https://github.com/dingmaotu/mql-zmq) documentation for more details on MT4 installation.
 
-### ⚙️ Instalação
+### ⚙️ Installation
 
-1.  **Clone o repositório:**
+1.  **Clone the repository:**
     ```sh
     git clone https://github.com/williansandi/Sync_MT4_Py.git
     cd Sync_MT4_Py
     ```
 
-2.  **Crie e ative um ambiente virtual (Recomendado):**
+2.  **Create and activate a virtual environment (Recommended):**
     ```sh
     python -m venv venv
     # Windows
@@ -57,62 +57,63 @@ Para que o projeto funcione, você precisará ter os seguintes softwares instala
     source venv/bin/activate
     ```
 
-3.  **Instale as dependências Python:**
+3.  **Install Python dependencies:**
     ```sh
     pip install -r requirements.txt
     ```
 
-4.  **Configure o lado do MetaTrader (MQL):**
-    Certifique-se de que seu Expert Advisor (EA) ou script MQL está configurado para se comunicar via ZeroMQ. Copie os arquivos MQL relevantes (ex: `SyncMT4.mq4` e includes do `mql-zmq`) para as pastas apropriadas do seu terminal MetaTrader (`MQL4/Experts`, `MQL4/Include`, etc.) e compile-os.
+4.  **Configure the MetaTrader side (MQL):**
+    Ensure your Expert Advisor (EA) or MQL script is configured to communicate via ZeroMQ. Copy the relevant MQL files (e.g., `SyncMT4.mq4` and `mql-zmq` includes) to the appropriate folders in your MetaTrader terminal (`MQL4/Experts`, `MQL4/Include`, etc.) and compile them.
 
 ---
 
-## 📈 Uso
+## 📈 Usage
 
-Para iniciar o robô e a interface gráfica, siga os passos:
+To start the robot and the graphical interface, follow these steps:
 
-1.  **Inicie o Expert Advisor no MetaTrader:**
-    Anexe o EA a um gráfico de sua preferência. Certifique-se de que o "AutoTrading" está habilitado no terminal.
+1.  **Start the Expert Advisor in MetaTrader:**
+    Attach the EA to a chart of your choice. Ensure "AutoTrading" is enabled in the terminal.
 
-2.  **Execute a Aplicação Python:**
-    Abra um terminal, ative o ambiente virtual e execute o script principal:
+2.  **Execute the Python Application:**
+    Open a terminal, activate the virtual environment, and run the main script:
     ```sh
     python main.py
     ```
-    A interface gráfica será iniciada. Insira suas credenciais da IQ Option na tela de login. As credenciais serão salvas de forma segura para futuros acessos.
+    The graphical interface will start. Enter your IQ Option credentials on the login screen. Credentials will be securely saved for future access.
 
 ---
 
 ## 🗺️ Roadmap
 
-*   [x] Criar uma interface gráfica simples para monitoramento.
-*   [ ] Implementar gerenciamento de risco "Sorosgale".
-*   [ ] Adicionar suporte a múltiplos pares de moedas simultaneamente.
+*   [x] Create a simple graphical interface for monitoring.
+*   [ ] Implement "Sorosgale" risk management.
+*   [ ] Add support for multiple currency pairs simultaneously.
 
-Veja as issues abertas para uma lista completa de funcionalidades propostas (e bugs conhecidos).
-
----
-
-## 🤝 Contribuição
-
-Contribuições são o que tornam a comunidade de código aberto um lugar incrível para aprender, inspirar e criar. Qualquer contribuição que você fizer será **muito apreciada**.
-
-1.  Faça um Fork do projeto
-2.  Crie sua Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Faça o Commit de suas alterações (`git commit -m 'Add some AmazingFeature'`)
-4.  Faça o Push para a Branch (`git push origin feature/AmazingFeature`)
-5.  Abra um Pull Request
+See the open issues for a full list of proposed features (and known bugs).
 
 ---
 
-## 📄 Licença
+## 🤝 Contributing
 
-Distribuído sob a Licença MIT. Veja `LICENSE` para mais informações.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
 ---
 
-## 📧 Contato
+## 📄 License
 
-Willian Sandi - williansandi@gmail.com
+Distributed under the MIT License. See `LICENSE` for more information.
 
-Link do Projeto: https://github.com/williansandi/Sync_MT4_Py.git
+---
+
+## 📧 Contact
+
+Willian Sandi - willianmarinhos@gmail.com
+Instagram: [instagram.com/Williansandi](https://instagram.com/Williansandi)
+
+Project Link: https://github.com/williansandi/Sync_MT4_Py.git
