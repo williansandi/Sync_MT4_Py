@@ -38,19 +38,19 @@ class ModernDashboardFrame(ctk.CTkFrame):
 
     def _register_callbacks(self):
         """Informa ao controller quais métodos da UI ele deve chamar para atualizações."""
-        self.controller.register_ui_callbacks(
-            log_message=self.add_log_message,
-            on_trade_result=self.on_trade_result,
-            on_pair_list_update=self.on_pair_list_update,
-            update_connection_status=self.update_connection_status,
-            update_robot_status=self.update_robot_status,
-            update_metric_cards=self.update_metric_cards,
-            get_masaniello_configs=self.get_masaniello_configs,
-            show_popup=self._show_popup,
-            clear_trade_history=lambda: self.history_card.clear_list() if hasattr(self, 'history_card') else None,
-            clear_signal_list=lambda: self.sub_frames["lista"]._clear_signal_list() if "lista" in self.sub_frames else None,
-            update_strategy_status_bar=self._update_strategy_status_bar
-        )
+        self.controller.set_ui_callbacks({
+            'log_message': self.add_log_message,
+            'on_trade_result': self.on_trade_result,
+            'on_pair_list_update': self.on_pair_list_update,
+            'update_connection_status': self.update_connection_status,
+            'update_robot_status': self.update_robot_status,
+            'update_metric_cards': self.update_metric_cards,
+            'get_masaniello_configs': self.get_masaniello_configs,
+            'show_popup': self._show_popup,
+            'clear_trade_history': lambda: self.history_card.clear_list() if hasattr(self, 'history_card') else None,
+            'clear_signal_list': lambda: self.sub_frames["lista"]._clear_signal_list() if "lista" in self.sub_frames else None,
+            'update_strategy_status_bar': self._update_strategy_status_bar
+        })
 
     # --- Métodos de Ação (Chamados pelos botões da UI) ---
 

@@ -1,121 +1,79 @@
-# bot/management/cycle_manager.py
 import logging
 
 class CycleManager:
-    """
-    Gerencia os ciclos de operação, incluindo Martingale e estratégias de recuperação.
-    """
-    def __init__(self, config, log_callback):
-        self.log_callback = log_callback
+    def __init__(self, config, log_callback, trade_logger):
+        self.log_callback = log_callback # For general logs (UI display)
+        self.trade_logger = trade_logger # For trade-specific logs (file)
         self.reload_config(config)
         self.reset()
 
     def reload_config(self, config):
-        """Carrega ou recarrega as configurações."""
         self.config = config
-        self.management_type = self.config.get('management_type', 'agressivo').lower()
         self.initial_entry_value = float(self.config.get('valor_entrada', 1.0))
-        self.martingale_levels = int(self.config.get('niveis_martingale', 2))
-        self.martingale_factor = float(self.config.get('fator_martingale', 2.0))
-        self.max_cycles = int(self.config.get('max_ciclos', 3))
-        self.payout_for_recovery = float(self.config.get('payout_recuperacao', 87.0)) / 100.0
-
-        logging.info(f"CycleManager configurado: Tipo={self.management_type}, Ciclos={self.max_cycles}, Martingale={self.martingale_levels} níveis")
+        self.martingale_factor = float(self.config.get('fator_martingale', 2.1))
+        
+        profile_name = self.config.get('perfil_de_risco', 'MODERADO').lower()
+        
+        # Carrega os parâmetros do perfil ativo a partir da configuração geral
+        self.active_profile = {
+            'percentual_recuperacao': float(self.config.get(f'{profile_name}_recuperacao', 75)) / 100.0,
+            'max_gales_por_ciclo': int(self.config.get(f'{profile_name}_max_gales', 2)),
+            'max_ciclos_perdidos': int(self.config.get(f'{profile_name}_max_ciclos', 2)),
+        }
+        
+        self.log_callback(f"Perfil de Risco definido para: {profile_name.upper()}", "CONFIG")
+        logging.info(f"CycleManager configurado com perfil: {profile_name.upper()} | {self.active_profile}")
 
     def reset(self):
-        """Reseta o estado do gerenciamento para o início."""
-        self.current_cycle = 1
-        self.current_martingale_level = 0
-        self.accumulated_loss_cycle = 0.0
-        self.total_loss_to_recover = 0.0
+        self.current_gale = 0
+        self.lost_cycles_count = 0
+        self.current_cycle_loss = 0.0
+        self.last_entry_value = 0.0
         self.is_active = True
-        self.log_callback("Gerenciador de Ciclos resetado para o estado inicial.", "INFO")
+        self.trade_logger.info("[INFO] Gerenciador de Ciclos resetado.")
 
-    def get_next_entry_value(self):
-        """Calcula e retorna o valor da próxima entrada."""
+    def get_next_entry_value(self, payout):
         if not self.is_active:
             return 0
 
-        # Modo Agressivo: Martingale de ciclos
-        if self.management_type == 'agressivo':
-            if self.current_martingale_level == 0:
-                # Início de um novo ciclo
-                if self.current_cycle == 1:
+        if self.current_gale == 0:
+            if self.current_cycle_loss == 0:
+                entry_value = self.initial_entry_value
+            else:
+                if payout <= 0:
+                    self.log_callback("Payout inválido (<= 0) para cálculo de recuperação. Usando entrada inicial.", "ERRO")
                     return self.initial_entry_value
-                else:
-                    # Entrada de recuperação para ciclos > 1
-                    if self.payout_for_recovery <= 0:
-                        self.log_callback("Payout de recuperação inválido. Abortando.", "ERRO")
-                        self.is_active = False
-                        return 0
-                    return self.total_loss_to_recover / self.payout_for_recovery
-            else:
-                # Dentro de um ciclo, aplicando Martingale
-                previous_entry = self.get_previous_entry_value()
-                return previous_entry * self.martingale_factor
-
-        # Modo Conservador: Recuperação gradual (a ser implementado)
-        elif self.management_type == 'conservador':
-            # Por enquanto, opera de forma simples sem recuperação entre ciclos
-            if self.current_martingale_level > 0:
-                 previous_entry = self.get_previous_entry_value()
-                 return previous_entry * self.martingale_factor
-            return self.initial_entry_value
-            
-        return self.initial_entry_value
-
-    def get_previous_entry_value(self):
-        """Helper para pegar o valor da entrada anterior no mesmo ciclo."""
-        if self.current_martingale_level == 1:
-            if self.current_cycle == 1:
-                return self.initial_entry_value
-            else:
-                return self.total_loss_to_recover / self.payout_for_recovery
-        else: # Martingale nivel 2+
-            # Recalcula o caminho para trás
-            previous_level_entry = self.get_previous_entry_value_at_level(self.current_martingale_level - 1)
-            return previous_level_entry
-
-    def get_previous_entry_value_at_level(self, level):
-        """Calcula o valor de entrada para um nível de martingale específico."""
-        if level == 0:
-            if self.current_cycle == 1:
-                return self.initial_entry_value
-            else:
-                return self.total_loss_to_recover / self.payout_for_recovery
+                
+                recovery_percentage = self.active_profile['percentual_recuperacao']
+                profit_target = self.current_cycle_loss * recovery_percentage
+                entry_value = profit_target / payout
+                self.trade_logger.info(f"[INFO] Iniciando Ciclo de Recuperação. Perda anterior: {self.current_cycle_loss:.2f}. Meta: {profit_target:.2f}. Entrada: {entry_value:.2f}")
+        else:
+            entry_value = self.last_entry_value * self.martingale_factor
         
-        base_value = self.get_previous_entry_value_at_level(level - 1)
-        return base_value * self.martingale_factor
+        return max(entry_value, 1.0)
 
     def record_trade(self, profit, entry_value):
-        """Registra o resultado de um trade e atualiza o estado."""
         if not self.is_active:
             return
 
+        self.last_entry_value = entry_value
+
         if profit > 0:
-            # WIN
-            self.log_callback(f"WIN no Ciclo {self.current_cycle} (Gale {self.current_martingale_level}). Resetando ciclo.", "WIN")
-            if self.management_type == 'agressivo':
-                self.total_loss_to_recover = 0 # Zera a perda acumulada
-            self.current_martingale_level = 0
-            self.accumulated_loss_cycle = 0.0
-            # No modo agressivo, um win em qualquer ciclo reseta tudo para o Ciclo 1
-            self.current_cycle = 1
-
+            self.trade_logger.info(f"[WIN] WIN no Ciclo (Gale {self.current_gale}). Resetando gerenciamento.")
+            self.current_cycle_loss = 0.0
+            self.current_gale = 0
+            self.lost_cycles_count = 0
         else:
-            # LOSS
-            self.accumulated_loss_cycle += entry_value
-            self.current_martingale_level += 1
-            self.log_callback(f"LOSS no Ciclo {self.current_cycle} (Gale {self.current_martingale_level-1}). Acumulado no ciclo: {self.accumulated_loss_cycle:.2f}", "LOSS")
+            self.current_cycle_loss += entry_value
+            self.current_gale += 1
+            self.trade_logger.info(f"[LOSS] LOSS (Gale {self.current_gale-1}). Perda acumulada: {self.current_cycle_loss:.2f}")
 
-            if self.current_martingale_level > self.martingale_levels:
-                # Fim de um ciclo
-                self.log_callback(f"Ciclo {self.current_cycle} finalizado com perda.", "AVISO")
-                self.total_loss_to_recover = self.accumulated_loss_cycle
-                self.current_cycle += 1
-                self.current_martingale_level = 0
-                self.accumulated_loss_cycle = 0.0
+            if self.current_gale > self.active_profile['max_gales_por_ciclo']:
+                self.lost_cycles_count += 1
+                self.trade_logger.warning(f"[AVISO] Ciclo perdido. Total de ciclos perdidos: {self.lost_cycles_count}")
+                self.current_gale = 0 
 
-                if self.current_cycle > self.max_cycles:
-                    self.log_callback(f"Número máximo de ciclos ({self.max_cycles}) atingido. Gerenciamento pausado.", "STOP")
+                if self.lost_cycles_count >= self.active_profile['max_ciclos_perdidos']:
                     self.is_active = False
+                    self.trade_logger.error(f"[STOP] Limite de {self.active_profile['max_ciclos_perdidos']} ciclos perdidos atingido. OPERAÇÕES PARADAS.")

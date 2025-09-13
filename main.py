@@ -2,22 +2,22 @@
 import tkinter.font
 
 from ui.app import App
-from utils.logger import setup_logger
+from utils.logger import setup_loggers
 import logging
 
 if __name__ == "__main__":
-    setup_logger()
+    root_logger, trade_logger = setup_loggers()
     
     # <-- MENSAGEM CORRIGIDA (SEM EMOJI) -->
-    logging.info("=================================================")
-    logging.info("==         QUANTUM TRADING ROBOT v4.0          ==")
-    logging.info("==   Aguardando login para iniciar os sistemas   ==")
-    logging.info("=================================================")
+    root_logger.info("=================================================")
+    root_logger.info("==         QUANTUM TRADING ROBOT v4.0          ==")
+    root_logger.info("==   Aguardando login para iniciar os sistemas ==")
+    root_logger.info("=================================================")
     
     try:
-        app = App()
+        app = App(trade_logger=trade_logger)
         app.mainloop()
     except Exception as e:
-        logging.critical(f"Erro fatal na aplicação: {e}", exc_info=True)
+        root_logger.critical(f"Erro fatal na aplicação: {e}", exc_info=True)
         
-    logging.info("Aplicação finalizada.\n")
+    root_logger.info("Aplicação finalizada.\n")

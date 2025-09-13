@@ -3,11 +3,14 @@ import os
 import logging
 import json
 import base64
+import traceback
+from tkinter import messagebox
 from PIL import Image
+from iqoptionapi.stable_api import IQ_Option
 from .dashboard_frame import ModernDashboardFrame
 from utils.path_resolver import resource_path
 
-logging.basicConfig(level=logging.INFO)
+
 
 
 class LoginFrame(ctk.CTkFrame):
@@ -23,20 +26,53 @@ class LoginFrame(ctk.CTkFrame):
         email = self.entry_email.get()
         senha = self.entry_senha.get()
         tipo_conta_selecionado = self.seg_button_conta.get()
-        if email and senha and tipo_conta_selecionado:
-            if self.checkbox_salvar_login.get() == 1:
-                # Codifica a senha antes de salvar
-                encoded_senha = base64.b64encode(senha.encode('utf-8')).decode('utf-8')
-                with open(self.saved_login_path, "w") as f: 
-                    json.dump({"email": email, "senha": encoded_senha}, f)
-            elif os.path.exists(self.saved_login_path): 
-                os.remove(self.saved_login_path)
-            
-            conta_api = 'PRACTICE' if tipo_conta_selecionado == 'DEMO' else 'REAL'
-            credentials = {"email": email, "senha": senha, "conta": conta_api}
-            self.app_instance.switch_frame(ModernDashboardFrame, credentials=credentials)
-        else:
+
+        if not (email and senha and tipo_conta_selecionado):
             self.label_erro.configure(text="Por favor, preencha todos os campos.")
+            return
+
+        try:
+            self.label_erro.configure(text="Conectando...", text_color="gray")
+            self.update() # Atualiza a UI para mostrar a mensagem
+
+            # Tenta conectar para validar as credenciais
+            api = IQ_Option(email, senha)
+            check, reason = api.connect()
+
+            if check:
+                # Sucesso na conexão, prosseguir com o fluxo normal
+                if self.checkbox_salvar_login.get() == 1:
+                    encoded_senha = base64.b64encode(senha.encode('utf-8')).decode('utf-8')
+                    with open(self.saved_login_path, "w") as f:
+                        json.dump({"email": email, "senha": encoded_senha}, f)
+                elif os.path.exists(self.saved_login_path):
+                    os.remove(self.saved_login_path)
+
+                conta_api = 'PRACTICE' if tipo_conta_selecionado == 'DEMO' else 'REAL'
+                credentials = {"email": email, "senha": senha, "conta": conta_api}
+                
+                # Limpa a mensagem de status antes de trocar de tela
+                self.label_erro.configure(text="")
+                
+                self.app_instance.switch_frame(ModernDashboardFrame, credentials=credentials)
+            else:
+                # Falha na conexão, exibir mensagem de erro
+                error_message = f"Falha no Login: {reason}"
+                try:
+                    # Tenta extrair uma mensagem mais amigável do JSON de erro
+                    error_data = json.loads(reason)
+                    if 'message' in error_data:
+                        error_message = f"Falha no Login: {error_data['message']}"
+                except (json.JSONDecodeError, TypeError):
+                    pass # Mantém a mensagem original se não for um JSON válido
+                
+                messagebox.showerror("Erro de Conexão", error_message)
+                self.label_erro.configure(text="")
+
+        except Exception as e:
+            logging.error(f"Erro inesperado durante o login: {traceback.format_exc()}")
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro inesperado.\nVerifique o log para mais detalhes.")
+            self.label_erro.configure(text="")
 
     def carregar_login_salvo(self):
         if os.path.exists(self.saved_login_path):

@@ -13,35 +13,27 @@ from utils.path_resolver import resource_path
 
 class AppController:
     """A classe controladora que gerencia a lógica do aplicativo e a comunicação entre a UI e o BotCore."""
-    def __init__(self, credentials, config_manager):
+    def __init__(self, credentials, config_manager, trade_logger):
         self.credentials = credentials
         self.config_manager = config_manager
+        self.trade_logger = trade_logger # Store trade_logger
         self.bot_core = None
         self.ui_callbacks = {}
         self.strategy = None
+
+        # Adiciona um handler ao trade_logger para enviar mensagens para a UI
+        class UILogHandler(logging.Handler):
+            def __init__(self, ui_callback_method):
+                super().__init__()
+                self.ui_callback_method = ui_callback_method
+            def emit(self, record):
+                self.ui_callback_method(self.format(record), tag="TRADE")
+        
+        self.trade_logger.addHandler(UILogHandler(self._handle_log))
+        self.trade_logger.propagate = False # Garante que não duplique logs se o root logger também tiver um handler de console
         self.masaniello_manager = None
         self.zmq_context = zmq.Context()
-        self.robot_stats = { 'is_active': False, 'is_paused': False, 'balance': 0.0, 'today_profit': 0.0, 'wins': 0, 'losses': 0, 'cifrao': '$' }
-
-    def register_ui_callbacks(self, **callbacks):
-        self.ui_callbacks = callbacks
-
-    def connect(self):
-        if self.bot_core: return
-        config_dict = self.config_manager.get_all_settings()
-        self.bot_core = IQBotCore(
-            credentials=self.credentials, config=config_dict,
-            log_callback=self._handle_log, trade_result_callback=self._handle_trade_result,
-            pair_list_callback=self._handle_pair_list_update, status_callback=self._handle_status_update
-        )
-        
-        if self.bot_core.connect():
-            self.robot_stats['balance'] = self.bot_core.api.get_balance()
-            self.robot_stats['cifrao'] = self.bot_core.cifrao
-            self.ui_callbacks.get('update_metric_cards', lambda x: None)(self._get_summary_data())
-            self.ui_callbacks.get('update_robot_status', lambda x, y: None)(False, False)
-        else:
-            self.ui_callbacks.get('show_popup', lambda x, y: None)("Erro de Conexão", "Não foi possível conectar à IQ Option.")
+        self.robot_stats = { 'is_active': False, 'is_paused': False, 'balance': 0.0, 'today_profit': 0.0, 'wins': 0, 'losses': 0, 'cifrao': ''}
 
     def start_bot(self, strategy_name, selected_pair, signals):
         if self.strategy and self.strategy.is_alive(): return
@@ -161,7 +153,6 @@ class AppController:
         if self.bot_core:
             self.bot_core.disconnect()
         self.zmq_context.term()
-        self.zmq_context.term()
 
     # --- Métodos Internos e Handlers de Callback ---
 
@@ -242,3 +233,22 @@ class AppController:
             self.bot_core.set_active_manager('cycle')
             self._handle_log("Iniciando com Gerenciamento Normal/Ciclos!", "INFO")
         return True
+
+    def set_ui_callbacks(self, callbacks):
+        self.ui_callbacks = callbacks
+
+    def connect(self):
+        if self.bot_core: return
+        config_dict = self.config_manager.get_all_settings()
+        self.bot_core = IQBotCore(
+            credentials=self.credentials, config=config_dict,
+            log_callback=self._handle_log, trade_logger=self.trade_logger, trade_result_callback=self._handle_trade_result,
+            pair_list_callback=self._handle_pair_list_update, status_callback=self._handle_status_update
+        )
+        
+        if self.bot_core.connect():
+            self.robot_stats['balance'] = self.bot_core.api.get_balance()
+            self.robot_stats['cifrao'] = self.bot_core.cifrao
+            self.ui_callbacks.get('update_metric_cards', lambda x: None)(self._get_summary_data())
+            self.ui_callbacks.get('update_robot_status', lambda x, y: None)(False, False)
+ 

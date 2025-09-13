@@ -385,17 +385,29 @@ class IQ_Option:
         try:
             asset_details = details.get(active, {}).get(option_type)
             if not asset_details:
-                logging.warning(f'Could not get asset details for {active} ({option_type}).')
+                # This is not an error, the asset might just not be available for this option_type
+                # logging.warning(f'Could not get asset details for {active} ({option_type}).')
                 return None
 
-            # This is a guess. The actual key might be different.
-            # Based on some observations, it might be in ['option']['rules']['expiration']
-            expirations_data = asset_details.get("option", {}).get("rules", {}).get("expiration")
+            expirations_data = None
             
+            # Tentativa 1: Caminho original documentado em algumas versões da API
+            if asset_details.get("option") and isinstance(asset_details.get("option"), dict) and asset_details["option"].get("rules"):
+                expirations_data = asset_details["option"]["rules"].get("expiration")
+
+            # Tentativa 2: Caminho alternativo (estrutura mais plana)
+            if not expirations_data and asset_details.get("option") and isinstance(asset_details.get("option"), dict):
+                 expirations_data = asset_details["option"].get("expiration")
+
+            # Tentativa 3: Direto no asset_details
+            if not expirations_data:
+                expirations_data = asset_details.get("expiration")
+
             if isinstance(expirations_data, list):
-                # Structure might be: [{'value': 1, 'is_enabled': True}, ...]
+                # A estrutura esperada é: [{'value': 1, 'is_enabled': True}, ...]
                 return [exp.get('value') for exp in expirations_data if exp.get('is_enabled')]
             
+            # Se nenhuma das tentativas funcionou, loga o aviso.
             logging.warning(f'Could not find expirations data for {active} ({option_type}). Structure might have changed.')
             return None
         except Exception as e:
@@ -556,7 +568,7 @@ class IQ_Option:
         self.api.candles.candles_data = None
 
         if ACTIVES not in OP_code.ACTIVES:
-            print('Asset {} not found in constants'.format(ACTIVES))
+            logging.error('Asset {} not found in constants'.format(ACTIVES))
             return None
 
         while True:

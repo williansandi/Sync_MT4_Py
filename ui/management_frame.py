@@ -63,16 +63,44 @@ class ManagementFrame(ctk.CTkFrame):
             self.simple_widgets["entries"][key] = self._create_row(tab, i, label)
 
     def _create_cycles_tab(self, tab):
-        tab.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(tab, text="Configure o sistema de recuperação com múltiplos ciclos e níveis.", font=self.fonts.BODY_NORMAL).grid(row=0, column=0, columnspan=2, sticky="w", padx=20, pady=(10, 15))
+        tab.grid_columnconfigure((1, 3), weight=1)
+        ctk.CTkLabel(tab, text="Configure o sistema de recuperação com base em perfis de risco.", font=self.fonts.BODY_NORMAL).grid(row=0, column=0, columnspan=4, sticky="w", padx=20, pady=(10, 15))
+
         self.cycles_widgets["buttons"]["usar_ciclos"] = self._create_row(tab, 1, "Ativar Gerenciamento de Ciclos", is_segmented=True)
-        self.cycles_widgets["buttons"]["management_type"] = self._create_row(tab, 2, "Tipo de Gerenciamento", is_segmented=True, options=["agressivo", "conservador"])
-        
-        cycle_entries = [("fator_martingale", "Fator de Multiplicação (Gale)"), ("niveis_martingale", "Níveis de Martingale por Ciclo"), 
-                         ("max_ciclos", "Número Máximo de Ciclos"), ("payout_recuperacao", "Payout Esperado na Recuperação (%)"),
-                         ("conservative_recovery_percentage", "% de Recuperação Conservadora")]
-        for i, (key, label) in enumerate(cycle_entries, start=3):
-            self.cycles_widgets["entries"][key] = self._create_row(tab, i, label)
+        self.cycles_widgets["buttons"]["perfil_de_risco"] = self._create_row(tab, 2, "Perfil de Risco Ativo", is_segmented=True, options=["CONSERVADOR", "MODERADO", "AGRESSIVO"])
+        self.cycles_widgets["entries"]["fator_martingale"] = self._create_row(tab, 3, "Fator de Multiplicação (Gale)")
+
+        # --- Frame para perfis ---
+        profiles_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        profiles_frame.grid(row=4, column=0, columnspan=4, sticky='ew', pady=(15,0))
+        profiles_frame.grid_columnconfigure((0, 1, 2), weight=1)
+
+        # --- Perfil Conservador ---
+        con_frame = ctk.CTkFrame(profiles_frame)
+        con_frame.grid(row=0, column=0, padx=5, pady=5, sticky='nsew')
+        con_frame.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(con_frame, text="CONSERVADOR", font=self.fonts.BODY_BOLD).grid(row=0, column=0, columnspan=2, pady=(5,10), padx=10)
+        self.cycles_widgets["entries"]["conservador_recuperacao"] = self._create_row(con_frame, 1, "% Recuperação")
+        self.cycles_widgets["entries"]["conservador_max_gales"] = self._create_row(con_frame, 2, "Max Gales")
+        self.cycles_widgets["entries"]["conservador_max_ciclos"] = self._create_row(con_frame, 3, "Max Ciclos")
+
+        # --- Perfil Moderado ---
+        mod_frame = ctk.CTkFrame(profiles_frame)
+        mod_frame.grid(row=0, column=1, padx=5, pady=5, sticky='nsew')
+        mod_frame.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(mod_frame, text="MODERADO", font=self.fonts.BODY_BOLD).grid(row=0, column=0, columnspan=2, pady=(5,10), padx=10)
+        self.cycles_widgets["entries"]["moderado_recuperacao"] = self._create_row(mod_frame, 1, "% Recuperação")
+        self.cycles_widgets["entries"]["moderado_max_gales"] = self._create_row(mod_frame, 2, "Max Gales")
+        self.cycles_widgets["entries"]["moderado_max_ciclos"] = self._create_row(mod_frame, 3, "Max Ciclos")
+
+        # --- Perfil Agressivo ---
+        agr_frame = ctk.CTkFrame(profiles_frame)
+        agr_frame.grid(row=0, column=2, padx=5, pady=5, sticky='nsew')
+        agr_frame.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(agr_frame, text="AGRESSIVO", font=self.fonts.BODY_BOLD).grid(row=0, column=0, columnspan=2, pady=(5,10), padx=10)
+        self.cycles_widgets["entries"]["agressivo_recuperacao"] = self._create_row(agr_frame, 1, "% Recuperação")
+        self.cycles_widgets["entries"]["agressivo_max_gales"] = self._create_row(agr_frame, 2, "Max Gales")
+        self.cycles_widgets["entries"]["agressivo_max_ciclos"] = self._create_row(agr_frame, 3, "Max Ciclos")
 
     def _create_masaniello_tab(self, tab):
         tab.grid_columnconfigure(1, weight=1)

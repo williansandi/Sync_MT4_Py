@@ -9,11 +9,12 @@ from .login_frame import LoginFrame
 from .dashboard_frame import ModernDashboardFrame
 
 class App(ctk.CTk):
-    def __init__(self):
+    def __init__(self, trade_logger):
         super().__init__()
         
         self.controller = None
         self.config_manager = ConfigManager()
+        self.trade_logger = trade_logger
 
         # Configuração de fontes
         font_path = resource_path(os.path.join("assets", "fonts", "Poppins-Regular.ttf"))
@@ -80,7 +81,7 @@ class App(ctk.CTk):
                 self.title("Quantum Booster | Dashboard")
                 
                 # Cria o controller e o passa para o Dashboard
-                self.controller = AppController(credentials, self.config_manager)
+                self.controller = AppController(credentials, self.config_manager, trade_logger=self.trade_logger)
                 frame_to_show = ModernDashboardFrame(self.container, controller=self.controller, font_family=self.font_family)
                 self.frames[ModernDashboardFrame] = frame_to_show
                 frame_to_show.grid(row=0, column=0, sticky="nsew")

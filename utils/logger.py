@@ -3,32 +3,57 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+from .path_resolver import resource_path
 
-def setup_logger():
-    """Configura o logger principal para salvar em um arquivo com rotação."""
+def setup_loggers():
+    """
+    Configura o logger principal da aplicação.
+    Saída: console e 'logs/bot_log.txt'.
+    """
+    # --- Formatação e Criação da Pasta de Log ---
+    log_formatter = logging.Formatter('[%(asctime)s] [%(levelname)-8s] %(message)s', datefmt='%H:%M:%S')
     
-    # Garante que a pasta de logs exista
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
+    log_dir = resource_path('logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
-    log_file = 'logs/bot_activity.log'
+    # --- Handlers --- 
+    # Handler para o arquivo de atividade geral (bot_log.txt)
+    general_log_file = os.path.join(log_dir, 'bot_log.txt')
+    general_handler = RotatingFileHandler(general_log_file, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8')
+    general_handler.setFormatter(log_formatter)
+    general_handler.setLevel(logging.DEBUG) # Definir nível DEBUG para o arquivo de log
 
-    # Configura o formato da mensagem de log
-    log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    # Handler para o arquivo de trades (trade_log.txt)
+    trade_log_file = os.path.join(log_dir, 'trade_log.txt')
+    trade_handler = RotatingFileHandler(trade_log_file, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8')
+    trade_handler.setFormatter(log_formatter)
+    trade_handler.setLevel(logging.INFO) # Definir nível INFO para o arquivo de trades
 
-    # Configura o handler para rotacionar o arquivo de log quando ele atingir 5MB
-    # Mantém até 5 arquivos de backup.
-    handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8')
-    handler.setFormatter(log_formatter)
+    # Handler para o console (será usado pelo logger raiz)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    console_handler.setLevel(logging.INFO) # Manter INFO para o console para evitar poluição visual
 
-    # Pega o logger raiz e adiciona o handler
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    # --- Configuração do Logger Raiz ---
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
 
-    # Evita adicionar handlers duplicados se a função for chamada mais de uma vez
-    if not logger.handlers:
-        logger.addHandler(handler)
-        
-    logging.info("="*50)
-    logging.info("Logger profissional iniciado. A aplicação está começando.")
-    logging.info("="*50)
+    # Definir nível de log para o módulo iqoptionapi para evitar logs excessivos
+    logging.getLogger('iqoptionapi').setLevel(logging.INFO)
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+    root_logger.addHandler(general_handler)
+    root_logger.addHandler(console_handler)
+
+    # --- Configuração do Logger de Trades ---
+    trade_logger = logging.getLogger('trade_logger')
+    trade_logger.setLevel(logging.INFO)
+    trade_logger.addHandler(trade_handler)
+    trade_logger.propagate = False # Evitar que os logs de trade sejam enviados para o logger raiz
+
+    root_logger.info("="*50)
+    root_logger.info("Loggers configurados. A aplicação está começando.")
+    root_logger.info("="*50)
+
+    return root_logger, trade_logger

@@ -1,0 +1,192 @@
+[21:46:12] [INFO    ] ==================================================
+[21:46:12] [INFO    ] Loggers configurados. A aplicação está começando.
+[21:46:12] [INFO    ] ==================================================
+[21:46:12] [INFO    ] =================================================
+[21:46:12] [INFO    ] ==         QUANTUM TRADING ROBOT v4.0          ==
+[21:46:12] [INFO    ] ==   Aguardando login para iniciar os sistemas ==
+[21:46:12] [INFO    ] =================================================
+[21:46:13] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:46:13] [DEBUG   ] STREAM b'IDAT' 41 447
+[21:46:13] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:46:13] [DEBUG   ] STREAM b'IDAT' 41 517
+[21:46:13] [DEBUG   ] STREAM b'IDAT' 500 6
+[21:46:14] [DEBUG   ] STREAM b'IDAT' 570 6
+[21:46:19] [INFO    ] Websocket connected
+[21:46:19] [DEBUG   ] Starting new HTTPS connection (1): auth.iqoption.com:443
+[21:46:19] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v2/login HTTP/1.1" 200 119
+[21:46:22] [INFO    ] Configurações carregadas do banco de dados.
+[21:46:22] [INFO    ] Todas as configurações foram carregadas na interface.
+[21:46:22] [ERROR   ] Erro inesperado durante o login: Traceback (most recent call last):
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\login_frame.py", line 57, in fazer_login
+    self.app_instance.switch_frame(ModernDashboardFrame, credentials=credentials)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\app.py", line 85, in switch_frame
+    frame_to_show = ModernDashboardFrame(self.container, controller=self.controller, font_family=self.font_family)
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\dashboard_frame.py", line 36, in __init__
+    self._register_callbacks()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\dashboard_frame.py", line 41, in _register_callbacks
+    self.controller.register_ui_callbacks(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'AppController' object has no attribute 'register_ui_callbacks'. Did you mean: 'set_ui_callbacks'?
+
+[21:46:24] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[21:47:09] [INFO    ] Fechando a aplicação...
+[21:47:09] [INFO    ] Aplicação finalizada.
+
+[21:47:09] [DEBUG   ] Resetting dropped connection: auth.iqoption.com
+[21:47:10] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v1.0/logout HTTP/1.1" 200 52
+[21:47:17] [INFO    ] ==================================================
+[21:47:17] [INFO    ] Loggers configurados. A aplicação está começando.
+[21:47:17] [INFO    ] ==================================================
+[21:47:17] [INFO    ] =================================================
+[21:47:17] [INFO    ] ==         QUANTUM TRADING ROBOT v4.0          ==
+[21:47:17] [INFO    ] ==   Aguardando login para iniciar os sistemas ==
+[21:47:17] [INFO    ] =================================================
+[21:47:17] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:47:17] [DEBUG   ] STREAM b'IDAT' 41 447
+[21:47:17] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:47:17] [DEBUG   ] STREAM b'IDAT' 41 517
+[21:47:17] [DEBUG   ] STREAM b'IDAT' 500 6
+[21:47:17] [DEBUG   ] STREAM b'IDAT' 570 6
+[21:47:23] [INFO    ] Websocket connected
+[21:47:23] [DEBUG   ] Starting new HTTPS connection (1): auth.iqoption.com:443
+[21:47:24] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v2/login HTTP/1.1" 200 119
+[21:47:25] [INFO    ] Configurações carregadas do banco de dados.
+[21:47:25] [INFO    ] Todas as configurações foram carregadas na interface.
+[21:47:26] [ERROR   ] Erro inesperado durante o login: Traceback (most recent call last):
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\login_frame.py", line 57, in fazer_login
+    self.app_instance.switch_frame(ModernDashboardFrame, credentials=credentials)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\app.py", line 85, in switch_frame
+    frame_to_show = ModernDashboardFrame(self.container, controller=self.controller, font_family=self.font_family)
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\dashboard_frame.py", line 36, in __init__
+    self._register_callbacks()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "W:\Proj_Git_Att_08_2025\SyncMT4\V3_Interface\V3.0.6\ui\dashboard_frame.py", line 41, in _register_callbacks
+    self.controller.set_ui_callbacks(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        log_message=self.add_log_message,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+        update_strategy_status_bar=self._update_strategy_status_bar
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: AppController.set_ui_callbacks() got an unexpected keyword argument 'log_message'
+
+[21:47:27] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[21:47:30] [INFO    ] Fechando a aplicação...
+[21:47:30] [INFO    ] Aplicação finalizada.
+
+[21:47:31] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v1.0/logout HTTP/1.1" 200 52
+[21:47:59] [INFO    ] ==================================================
+[21:47:59] [INFO    ] Loggers configurados. A aplicação está começando.
+[21:47:59] [INFO    ] ==================================================
+[21:47:59] [INFO    ] =================================================
+[21:47:59] [INFO    ] ==         QUANTUM TRADING ROBOT v4.0          ==
+[21:47:59] [INFO    ] ==   Aguardando login para iniciar os sistemas ==
+[21:47:59] [INFO    ] =================================================
+[21:47:59] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:47:59] [DEBUG   ] STREAM b'IDAT' 41 447
+[21:47:59] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:47:59] [DEBUG   ] STREAM b'IDAT' 41 517
+[21:47:59] [DEBUG   ] STREAM b'IDAT' 500 6
+[21:47:59] [DEBUG   ] STREAM b'IDAT' 570 6
+[21:48:03] [INFO    ] Websocket connected
+[21:48:03] [DEBUG   ] Starting new HTTPS connection (1): auth.iqoption.com:443
+[21:48:04] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v2/login HTTP/1.1" 200 119
+[21:48:05] [INFO    ] Configurações carregadas do banco de dados.
+[21:48:05] [INFO    ] Todas as configurações foram carregadas na interface.
+[21:48:06] [INFO    ] Configurações carregadas do banco de dados.
+[21:48:07] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[21:48:37] [INFO    ] Fechando a aplicação...
+[21:48:38] [INFO    ] Aplicação finalizada.
+
+[21:48:38] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v1.0/logout HTTP/1.1" 200 52
+[21:49:03] [INFO    ] ==================================================
+[21:49:03] [INFO    ] Loggers configurados. A aplicação está começando.
+[21:49:03] [INFO    ] ==================================================
+[21:49:03] [INFO    ] =================================================
+[21:49:03] [INFO    ] ==         QUANTUM TRADING ROBOT v4.0          ==
+[21:49:03] [INFO    ] ==   Aguardando login para iniciar os sistemas ==
+[21:49:03] [INFO    ] =================================================
+[21:49:03] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:49:03] [DEBUG   ] STREAM b'IDAT' 41 447
+[21:49:03] [DEBUG   ] STREAM b'IHDR' 16 13
+[21:49:03] [DEBUG   ] STREAM b'IDAT' 41 517
+[21:49:03] [DEBUG   ] STREAM b'IDAT' 500 6
+[21:49:03] [DEBUG   ] STREAM b'IDAT' 570 6
+[21:49:07] [INFO    ] Websocket connected
+[21:49:07] [DEBUG   ] Starting new HTTPS connection (1): auth.iqoption.com:443
+[21:49:07] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v2/login HTTP/1.1" 200 119
+[21:49:09] [INFO    ] Configurações carregadas do banco de dados.
+[21:49:09] [INFO    ] Todas as configurações foram carregadas na interface.
+[21:49:09] [INFO    ] Configurações carregadas do banco de dados.
+[21:49:09] [INFO    ] CycleManager configurado com perfil: MODERADO | {'percentual_recuperacao': 0.75, 'max_gales_por_ciclo': 2, 'max_ciclos_perdidos': 2}
+[21:49:11] [INFO    ] Websocket connected
+[21:49:19] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[21:50:08] [INFO    ] Estado do bot_core resetado para nova sessão.
+[21:50:08] [INFO    ] Iniciando busca por notícias econômicas do dia...
+[21:50:11] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[22:02:06] [INFO    ] Fechando a aplicação...
+[22:02:06] [INFO    ] Aplicação finalizada.
+
+[22:02:06] [DEBUG   ] Resetting dropped connection: auth.iqoption.com
+[22:02:07] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v1.0/logout HTTP/1.1" 200 52
+[22:02:34] [INFO    ] ==================================================
+[22:02:34] [INFO    ] Loggers configurados. A aplicação está começando.
+[22:02:34] [INFO    ] ==================================================
+[22:02:34] [INFO    ] =================================================
+[22:02:34] [INFO    ] ==         QUANTUM TRADING ROBOT v4.0          ==
+[22:02:34] [INFO    ] ==   Aguardando login para iniciar os sistemas ==
+[22:02:34] [INFO    ] =================================================
+[22:02:35] [DEBUG   ] STREAM b'IHDR' 16 13
+[22:02:35] [DEBUG   ] STREAM b'IDAT' 41 447
+[22:02:35] [DEBUG   ] STREAM b'IHDR' 16 13
+[22:02:35] [DEBUG   ] STREAM b'IDAT' 41 517
+[22:02:35] [DEBUG   ] STREAM b'IDAT' 500 6
+[22:02:35] [DEBUG   ] STREAM b'IDAT' 570 6
+[22:02:38] [INFO    ] Websocket connected
+[22:02:38] [DEBUG   ] Starting new HTTPS connection (1): auth.iqoption.com:443
+[22:02:39] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v2/login HTTP/1.1" 200 119
+[22:02:41] [INFO    ] Configurações carregadas do banco de dados.
+[22:02:41] [INFO    ] Todas as configurações foram carregadas na interface.
+[22:02:41] [INFO    ] Configurações carregadas do banco de dados.
+[22:02:41] [INFO    ] CycleManager configurado com perfil: MODERADO | {'percentual_recuperacao': 0.75, 'max_gales_por_ciclo': 2, 'max_ciclos_perdidos': 2}
+[22:02:43] [INFO    ] Websocket connected
+[22:02:48] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[22:02:51] [INFO    ] Estado do bot_core resetado para nova sessão.
+[22:02:51] [INFO    ] Iniciando busca por notícias econômicas do dia...
+[22:02:53] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[22:29:23] [DEBUG   ] Resetting dropped connection: auth.iqoption.com
+[22:30:12] [INFO    ] ==================================================
+[22:30:12] [INFO    ] Loggers configurados. A aplicação está começando.
+[22:30:12] [INFO    ] ==================================================
+[22:30:12] [INFO    ] =================================================
+[22:30:12] [INFO    ] ==         QUANTUM TRADING ROBOT v4.0          ==
+[22:30:12] [INFO    ] ==   Aguardando login para iniciar os sistemas ==
+[22:30:12] [INFO    ] =================================================
+[22:30:13] [DEBUG   ] STREAM b'IHDR' 16 13
+[22:30:13] [DEBUG   ] STREAM b'IDAT' 41 447
+[22:30:13] [DEBUG   ] STREAM b'IHDR' 16 13
+[22:30:13] [DEBUG   ] STREAM b'IDAT' 41 517
+[22:30:13] [DEBUG   ] STREAM b'IDAT' 500 6
+[22:30:13] [DEBUG   ] STREAM b'IDAT' 570 6
+[22:30:20] [INFO    ] Websocket connected
+[22:30:20] [DEBUG   ] Starting new HTTPS connection (1): auth.iqoption.com:443
+[22:30:21] [DEBUG   ] https://auth.iqoption.com:443 "POST /api/v2/login HTTP/1.1" 200 119
+[22:30:22] [INFO    ] Configurações carregadas do banco de dados.
+[22:30:22] [INFO    ] Todas as configurações foram carregadas na interface.
+[22:30:22] [INFO    ] Configurações carregadas do banco de dados.
+[22:30:22] [INFO    ] CycleManager configurado com perfil: MODERADO | {'percentual_recuperacao': 0.75, 'max_gales_por_ciclo': 2, 'max_ciclos_perdidos': 2}
+[22:30:24] [INFO    ] Websocket connected
+[22:30:28] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[22:30:41] [INFO    ] Estado do bot_core resetado para nova sessão.
+[22:30:41] [INFO    ] Histórico de trades da UI foi limpo.
+[22:30:41] [INFO    ] [INFO] Lista de sinais foi limpa.
+[22:30:44] [INFO    ] Estado do bot_core resetado para nova sessão.
+[22:30:44] [INFO    ] Iniciando busca por notícias econômicas do dia...
+[22:30:45] [DEBUG   ] Encoding detection: utf_8 is most likely the one.
+[02:30:50] [INFO    ] Iniciando busca por notícias econômicas do dia...
+[02:44:07] [DEBUG   ] Encoding detection: utf_8 is most likely the one.

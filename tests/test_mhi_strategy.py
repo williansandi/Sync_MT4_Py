@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import MagicMock
 from bot.strategies.mhi_strategy import MHIStrategy
+import logging
 
 class TestMHIStrategy(unittest.TestCase):
 
@@ -26,7 +27,7 @@ class TestMHIStrategy(unittest.TestCase):
         self.assertIsNotNone(self.strategy)
         self.assertEqual(self.strategy.ativo, self.ativo)
         self.assertEqual(self.strategy.bot_core, self.mock_bot_core)
-        print("\nTeste de instanciação da MHIStrategy passou com sucesso!")
+        logging.info("\nTeste de instanciação da MHIStrategy passou com sucesso!")
 
     def test_analisar_e_operar_com_sinal_de_put(self):
         """Testa a lógica de análise quando o resultado é PUT (venda)."""
@@ -42,7 +43,7 @@ class TestMHIStrategy(unittest.TestCase):
 
         # Verificamos se o método de trade foi chamado com a direção correta ('put')
         self.mock_bot_core.executar_trade.assert_called_with(self.ativo, 'put', 1)
-        print("Teste de análise com sinal de PUT passou com sucesso!")
+        logging.info("Teste de análise com sinal de PUT passou com sucesso!")
 
     def test_analisar_e_operar_com_sinal_de_call(self):
         """Testa a lógica de análise quando o resultado é CALL (compra)."""
@@ -56,7 +57,7 @@ class TestMHIStrategy(unittest.TestCase):
         self.strategy._analisar_e_operar()
 
         self.mock_bot_core.executar_trade.assert_called_with(self.ativo, 'call', 1)
-        print("Teste de análise com sinal de CALL passou com sucesso!")
+        logging.info("Teste de análise com sinal de CALL passou com sucesso!")
 
     def test_analisar_e_operar_com_doji(self):
         """Testa se a análise é abortada quando uma vela Doji é encontrada."""
@@ -71,7 +72,8 @@ class TestMHIStrategy(unittest.TestCase):
 
         # Verificamos que o método de trade NÃO foi chamado
         self.mock_bot_core.executar_trade.assert_not_called()
-        print("Teste de análise com Doji passou com sucesso!")
+        logging.info("Teste de análise com Doji passou com sucesso!")
 
 if __name__ == '__main__':
     unittest.main()
+

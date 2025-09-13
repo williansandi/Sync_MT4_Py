@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import MagicMock
 from bot.management.cycle_manager import CycleManager
+import logging
 
 class TestCycleManager(unittest.TestCase):
 
@@ -27,7 +28,7 @@ class TestCycleManager(unittest.TestCase):
         self.assertEqual(self.manager.martingale_factor, 2.0)
         self.assertEqual(self.manager.max_cycles, 3)
         self.assertAlmostEqual(self.manager.payout_for_recovery, 0.87)
-        print("\nTeste de inicialização do CycleManager passou!")
+        logging.info("Teste de inicialização do CycleManager passou!")
 
     def test_reset_restaura_estado_inicial(self):
         """Verifica se o método reset restaura os atributos para o padrão."""
@@ -45,12 +46,12 @@ class TestCycleManager(unittest.TestCase):
         self.assertEqual(self.manager.current_martingale_level, 0)
         self.assertEqual(self.manager.total_loss_to_recover, 0.0)
         self.assertTrue(self.manager.is_active)
-        print("Teste do método reset() passou!")
+        logging.info("Teste do método reset() passou!")
 
     def test_get_next_entry_value_primeiro_ciclo_entrada_inicial(self):
         """Testa o valor de entrada inicial no primeiro ciclo."""
         self.assertEqual(self.manager.get_next_entry_value(), 10.0)
-        print("Teste de valor de entrada inicial passou!")
+        logging.info("Teste de valor de entrada inicial passou!")
 
     def test_get_next_entry_value_primeiro_ciclo_primeiro_martingale(self):
         """Testa o valor de entrada após uma perda (1º Martingale)."""
@@ -59,7 +60,7 @@ class TestCycleManager(unittest.TestCase):
         
         # O próximo valor deve ser o valor inicial * fator martingale
         self.assertEqual(self.manager.get_next_entry_value(), 20.0) # 10 * 2.0
-        print("Teste de valor do 1º Martingale passou!")
+        logging.info("Teste de valor do 1º Martingale passou!")
 
     def test_record_trade_win_reseta_o_ciclo(self):
         """Testa se um WIN reseta o nível de martingale e o ciclo."""
@@ -70,7 +71,7 @@ class TestCycleManager(unittest.TestCase):
         self.assertEqual(self.manager.current_martingale_level, 0)
         self.assertEqual(self.manager.current_cycle, 1)
         self.assertEqual(self.manager.accumulated_loss_cycle, 0.0)
-        print("Teste de reset após um WIN passou!")
+        logging.info("Teste de reset após um WIN passou!")
 
     def test_ciclo_agressivo_passa_para_ciclo_de_recuperacao(self):
         """Testa a transição para um ciclo de recuperação após exceder os níveis de gale."""
@@ -84,7 +85,7 @@ class TestCycleManager(unittest.TestCase):
         self.assertEqual(self.manager.current_martingale_level, 0)
         # A perda total a ser recuperada deve ser a soma das entradas do ciclo anterior
         self.assertEqual(self.manager.total_loss_to_recover, 70) # 10 + 20 + 40
-        print("Teste de transição para ciclo de recuperação passou!")
+        logging.info("Teste de transição para ciclo de recuperação passou!")
 
     def test_get_next_entry_value_em_ciclo_de_recuperacao(self):
         """Testa o cálculo do valor de entrada no início de um ciclo de recuperação."""
@@ -94,7 +95,7 @@ class TestCycleManager(unittest.TestCase):
         # Calculamos o valor esperado para a recuperação
         valor_recuperacao = 70 / 0.87 # total_loss_to_recover / payout
         self.assertAlmostEqual(self.manager.get_next_entry_value(), valor_recuperacao)
-        print("Teste de valor de entrada em ciclo de recuperação passou!")
+        logging.info("Teste de valor de entrada em ciclo de recuperação passou!")
 
     def test_atingir_maximo_de_ciclos_pausa_o_gerenciamento(self):
         """Testa se o gerenciamento é pausado ao atingir o número máximo de ciclos."""
@@ -106,7 +107,7 @@ class TestCycleManager(unittest.TestCase):
         self.manager.record_trade(-10, 10) # Uma perda qualquer para acionar a lógica
 
         self.assertFalse(self.manager.is_active)
-        print("Teste de pausa após atingir máximo de ciclos passou!")
+        logging.info("Teste de pausa após atingir máximo de ciclos passou!")
 
 if __name__ == '__main__':
     unittest.main()

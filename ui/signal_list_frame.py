@@ -45,17 +45,28 @@ class SignalListFrame(ctk.CTkFrame):
                 for line in f:
                     line = line.strip()
                     if not line: continue
+                    
                     parts = line.split(';')
-                    if len(parts) == 3:
-                        # Normaliza a ação para 'call' ou 'put'
+                    if len(parts) >= 3:
+                        timeframe = 1 # Padrão de 1 minuto
+                        if len(parts) == 4:
+                            try:
+                                timeframe = int(parts[3])
+                            except (ValueError, IndexError):
+                                self.log_callback(f"Timeframe inválido na linha '{line}', usando padrão M1.", "AVISO")
+                        
                         action = parts[2].lower().replace("venda", "put").replace("compra", "call")
+                        
                         self.signals.append({
                             "id": str(uuid.uuid4()), 
                             "time": parts[0], 
-                            "asset": parts[1],  # Mantém o nome do ativo exatamente como está no arquivo
+                            "asset": parts[1],
                             "action": action, 
+                            "timeframe": timeframe,
                             "status": "pending"
                         })
+                    else:
+                        self.log_callback(f"Linha ignorada (formato inválido): '{line}'", "AVISO")
             
             self.file_label.configure(text=f"{len(self.signals)} sinais carregados de: ...{file_path[-30:]}")
             self.signal_card.populate_signals(self.signals)

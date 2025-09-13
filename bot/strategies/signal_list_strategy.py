@@ -55,7 +55,7 @@ class SignalListStrategy:
                     self.last_traded_asset = signal['asset']
                     self.last_trade_direction = signal['action']
                     # A chamada agora é direta e não bloqueante, apenas enfileira o trade
-                    self.bot_core.executar_trade(signal['asset'], signal['action'], 1, context)
+                    self.bot_core.executar_trade(signal['asset'], signal['action'], signal['timeframe'], context)
             
             time.sleep(1)
         

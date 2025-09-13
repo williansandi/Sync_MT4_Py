@@ -12,11 +12,12 @@ from .management.masaniello_manager import MasanielloManager
 from .management.cycle_manager import CycleManager
 
 class IQBotCore:
-    def __init__(self, credentials, config, log_callback, trade_result_callback, pair_list_callback, status_callback):
+    def __init__(self, credentials, config, log_callback, trade_result_callback, pair_list_callback, status_callback, trade_logger):
         self.api = None
         self.credentials = credentials
         self.config = config
-        self.log_callback = log_callback
+        self.log_callback = log_callback # For general logs (UI display)
+        self.trade_logger = trade_logger # For trade-specific logs (file)
         self.trade_result_callback = trade_result_callback
         self.pair_list_callback = pair_list_callback
         self.status_callback = status_callback
@@ -50,7 +51,7 @@ class IQBotCore:
         
         # --- Gerenciadores de Risco ---
         self.masaniello_manager = None
-        self.cycle_manager = CycleManager(self.config, self.log_callback)
+        self.cycle_manager = CycleManager(self.config, self.log_callback, self.trade_logger)
         self.active_manager = 'cycle'
         # ------------------------------------------------
 
@@ -141,9 +142,9 @@ class IQBotCore:
             self.log_callback(f"Trade para {ativo_sinal} abortado: Sem conexão.", "ERRO")
             return
 
-        ativo_real = self._resolver_ativo_correto(ativo_sinal)
+        ativo_real = self._resolver_ativo_correto(ativo_sinal, timeframe)
         if not ativo_real:
-            self.log_callback(f"Operação para {ativo_sinal} abortada: ativo não encontrado ou fechado.", "AVISO")
+            # Log já acontece dentro de _resolver_ativo_correto
             return
 
         if self.operacoes_em_andamento.get(ativo_real, False):
@@ -157,14 +158,11 @@ class IQBotCore:
             self.operacoes_em_andamento[ativo_real] = True
             
             while self.is_running and not self.stop_worker_event.is_set():
-                entry_value, manager_name, should_record = self._get_entry_value()
+                entry_value, manager_name, should_record = self._get_entry_value(ativo_real)
 
                 if entry_value <= 0:
                     self.log_callback(f"Gerenciador ({manager_name}) finalizou ou retornou valor inválido.", "INFO")
                     self.is_running = False
-                    break
-
-                if not self._validar_timeframe(ativo_real, timeframe):
                     break
 
                 check, trade_id = self._enviar_ordem(entry_value, ativo_real, direcao, timeframe, manager_name)
@@ -184,7 +182,7 @@ class IQBotCore:
                 if not self._deve_continuar_martingale(lucro):
                     break # Sai do ciclo de martingale (WIN ou fim dos níveis)
                 
-                self.log_callback(f"Iniciando Martingale para {ativo_real}...", "INFO")
+                self.trade_logger.info(f"[INFO] Iniciando Martingale para {ativo_real}...")
                 # O loop continuará para a próxima iteração (martingale)
 
         except WebSocketConnectionClosedException:
@@ -197,62 +195,95 @@ class IQBotCore:
             self.operacoes_em_andamento[ativo_real] = False
 
     # --- Métodos auxiliares do ciclo de trade ---
-    def _resolver_ativo_correto(self, ativo_sinal):
-        if not self.cache_last_updated:
-            self.log_callback("Cache de ativos ainda não populado.", "ERRO")
-            return None
+    def _resolver_ativo_correto(self, ativo_sinal, timeframe):
+        """
+        Valida e ajusta o nome de um ativo. Para ativos normais, valida também o timeframe.
+        Para OTC, assume que o timeframe é válido se o ativo estiver aberto.
+        """
+        if not self.api or not self.is_connected:
+            self.log_callback("API não conectada, validação de ativo pulada.", "AVISO")
+            return ativo_sinal
+
+        is_otc = "-OTC" in ativo_sinal.upper()
+
+        # Lógica de resolução de nome (tentar com e sem -op)
+        candidatos = [(ativo_sinal, "correspondencia exata"), (f"{ativo_sinal}-op", "variacao '-op'")]
+        resolved_asset = None
+        match_type = None
+
         with self.cache_lock:
-            # Usa o tipo de opção da configuração, com 'binary' como padrão.
-            option_type = self.config.get('tipo', 'binary')
-            lista_ativos_abertos = list(self.open_assets_cache.get(option_type, {}).keys())
+            # Assumindo que o cache contém todos os ativos abertos, independentemente do tipo de opção
+            all_open_assets = set()
+            if self.open_assets_cache:
+                for option_type in self.open_assets_cache.keys():
+                    all_open_assets.update(self.open_assets_cache[option_type].keys())
+
+        for candidato, tipo_match in candidatos:
+            if candidato in all_open_assets:
+                resolved_asset = candidato
+                match_type = tipo_match
+                break
         
-        ativo_base = ativo_sinal.upper().replace('-OTC', '').replace('-OP', '')
-        candidatos = []
-        if "-OTC" in ativo_sinal.upper():
-            candidatos.append(f"{ativo_base}-OTC")
-        else:
-            candidatos.append(f"{ativo_base}-op")
-            candidatos.append(f"{ativo_base}-OP")
-            candidatos.append(ativo_base)
+        if not resolved_asset:
+            self.log_callback(f"Ativo '{ativo_sinal}' foi considerado invalido (nenhuma correspondencia encontrada).", "AVISO")
+            return None
 
-        for candidato in candidatos:
-            if candidato in lista_ativos_abertos:
-                return candidato
+        self.log_callback(f"Ativo '{ativo_sinal}' resolvido para '{resolved_asset}' ({match_type} encontrada).", "INFO")
 
-        for ativo_aberto in lista_ativos_abertos:
-            if ativo_aberto.upper().startswith(ativo_base):
-                return ativo_aberto
-        return None
+        # Se for OTC, confiamos que está aberto para todos os timeframes e pulamos a verificação de expiração.
+        if is_otc:
+            self.log_callback(f"Ativo '{resolved_asset}' é OTC, validação de timeframe pulada.", "INFO")
+            return resolved_asset
 
-    def _get_entry_value(self):
+        # Para ativos normais, prossegue com a validação do timeframe
+        timeframe_do_sinal = int(timeframe)
+        tipo_opcao = 'turbo' if timeframe_do_sinal < 5 else 'binary'
+        
+        try:
+            timeframes_disponiveis = self.api.get_available_expirations(resolved_asset, tipo_opcao)
+            
+            if timeframes_disponiveis is not None:
+                if timeframe_do_sinal in timeframes_disponiveis:
+                    self.log_callback(f"Ativo '{resolved_asset}' VÁLIDO para o timeframe de {timeframe}M.", "INFO")
+                    return resolved_asset
+                else:
+                    self.log_callback(f"Ativo '{resolved_asset}' REJEITADO por estar fechado para o timeframe de {timeframe}M.", "AVISO")
+                    return None
+            else:
+                # Se a API não retornou dados de expiração (pode ser um erro da lib/API)
+                self.log_callback(f"Não foi possível obter dados de expiração para o ativo normal '{resolved_asset}'. A operação será cancelada como precaução.", "AVISO")
+                return None
+        except Exception as e:
+            self.log_callback(f"Erro ao verificar timeframes para '{resolved_asset}': {e}. A operação será cancelada.", "ERRO")
+            return None
+
+    def _get_entry_value(self, asset):
         if self.active_manager == 'cycle':
             if self.config.get('usar_ciclos', 'S') == 'S':
-                return self.cycle_manager.get_next_entry_value(), "Ciclos", True
+                # Payout é um valor de 0 a 100, dividir por 100
+                payout = (self.api.get_digital_payout(asset) or 87) / 100.0
+                return self.cycle_manager.get_next_entry_value(payout), "Ciclos", True
             else:
                 return float(self.config.get('valor_entrada', 1.0)), "Fixo", False
         elif self.active_manager == 'masaniello' and self.masaniello_manager:
             return self.masaniello_manager.get_next_entry_value(), "Masaniello", True
         return 0, "N/A", False
 
-    def _validar_timeframe(self, ativo, timeframe):
-        timeframe_do_sinal = int(timeframe)
-        tipo_opcao = 'turbo' if timeframe_do_sinal < 5 else 'binary'
-        timeframes_disponiveis = self.api.get_available_expirations(ativo, tipo_opcao)
-        if timeframes_disponiveis and timeframe_do_sinal not in timeframes_disponiveis:
-            self.log_callback(f"Operação para {ativo} abortada. Timeframe M{timeframe_do_sinal} não disponível.", "AVISO")
-            return False
-        return True
-
     def _enviar_ordem(self, entry_value, ativo, direcao, timeframe, manager_name):
-        self.log_callback(f'Ordem enviada: {ativo} {direcao.upper()} | {self.cifrao}{entry_value:.2f} | {manager_name}', "TRADE")
+        self.trade_logger.info(f'[TRADE] Enviando ordem: {ativo} {direcao.upper()} | {self.cifrao}{entry_value:.2f} | {manager_name}')
+        self.log_callback(f'Enviando ordem: {ativo} {direcao.upper()} | {self.cifrao}{entry_value:.2f} | {manager_name}', 'TRADE')
         try:
-            check, trade_id = self.api.buy(entry_value, ativo, direcao, timeframe)
-            if not (check and isinstance(trade_id, int)):
-                self.log_callback(f"Ordem para {ativo} foi rejeitada ou falhou. Resposta: {trade_id}", "ERRO")
+            check, trade_id_or_reason = self.api.buy(entry_value, ativo, direcao, timeframe)
+            if check:
+                self.trade_logger.info(f"[SUCCESS] Ordem ACEITA pela corretora. ID da Ordem: {trade_id_or_reason}")
+                self.log_callback(f"Ordem ACEITA pela corretora. ID da Ordem: {trade_id_or_reason}", 'SUCCESS')
+                return True, trade_id_or_reason
+            else:
+                self.trade_logger.error(f"[ERRO] Ordem REJEITADA pela corretora. Motivo: {trade_id_or_reason}")
+                self.log_callback(f"Ordem REJEITADA pela corretora. Motivo: {trade_id_or_reason}", 'ERRO')
                 return False, None
-            return True, trade_id
         except Exception as e:
-            self.log_callback(f"API Error on buy for {ativo}: {e}", "ERRO")
+            self.trade_logger.error(f"[ERRO] API Error on buy for {ativo}: {e}")
             return False, None
 
     def _registrar_resultado_gerenciador(self, lucro, entry_value):
@@ -262,7 +293,12 @@ class IQBotCore:
             self.masaniello_manager.record_trade(entry_value, lucro)
 
     def _deve_continuar_martingale(self, lucro):
-        return self.active_manager == 'cycle' and lucro <= 0 and self.cycle_manager.is_active and self.cycle_manager.current_martingale_level > 0 and self.cycle_manager.current_martingale_level <= self.cycle_manager.martingale_levels
+        if not (self.active_manager == 'cycle' and self.cycle_manager.is_active and lucro <= 0):
+            return False
+        
+        # A lógica de gale agora está no CycleManager
+        # Esta função agora apenas verifica se um novo gale deve ser tentado.
+        return self.cycle_manager.current_gale > 0 and self.cycle_manager.current_gale <= self.cycle_manager.active_profile['max_gales_por_ciclo']
 
     # --- Conexão e Workers ---
     def connect(self, *args, **kwargs):
@@ -423,10 +459,10 @@ class IQBotCore:
         self.lucro_total += lucro
 
         if lucro > 0:
-            self.log_callback(f'WIN | Lucro: {self.cifrao}{lucro:+.2f} | Saldo: {self.cifrao}{self.lucro_total:+.2f}', "WIN")
+            self.trade_logger.info(f'[WIN] WIN (Ordem {trade_id}) | Lucro: {self.cifrao}{lucro:+.2f} | Saldo: {self.cifrao}{self.lucro_total:+.2f}')
         else:
             msg = 'EMPATE' if lucro == 0 else 'LOSS'
-            self.log_callback(f'{msg} | Prejuízo: {self.cifrao}{lucro:.2f} | Saldo: {self.cifrao}{self.lucro_total:+.2f}', "LOSS" if msg == 'LOSS' else "INFO")
+            self.trade_logger.info(f'[{msg}] {msg} (Ordem {trade_id}) | Prejuízo: {self.cifrao}{lucro:.2f} | Saldo: {self.cifrao}{self.lucro_total:+.2f}')
         return lucro
 
     def _carregar_noticias_do_dia(self):

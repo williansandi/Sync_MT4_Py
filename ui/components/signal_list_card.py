@@ -63,16 +63,17 @@ class SignalListCard(ctk.CTkFrame):
         status_label.grid(row=0, column=0, sticky="ew")
         ctk.CTkLabel(row_frame, text=signal['time'], font=self.fonts.BODY_SMALL).grid(row=0, column=1, sticky="ew")
         ctk.CTkLabel(row_frame, text=signal['asset'], font=self.fonts.BODY_SMALL).grid(row=0, column=2, sticky="ew")
+        ctk.CTkLabel(row_frame, text=f"M{signal.get('timeframe', 1)}", font=self.fonts.BODY_SMALL).grid(row=0, column=3, sticky="ew")
         direcao_text = "🔼 CALL" if signal['action'] == 'call' else "🔽 PUT"
-        ctk.CTkLabel(row_frame, text=direcao_text, font=self.fonts.BODY_SMALL).grid(row=0, column=3, sticky="ew")
+        ctk.CTkLabel(row_frame, text=direcao_text, font=self.fonts.BODY_SMALL).grid(row=0, column=4, sticky="ew")
         result_label = ctk.CTkLabel(row_frame, text="-", font=self.fonts.BODY_SMALL, text_color=ModernTheme.TEXT_MUTED)
-        result_label.grid(row=0, column=4, sticky="ew")
+        result_label.grid(row=0, column=5, sticky="ew")
         
         # --- (NOVO) Botão de exclusão ---
         delete_button = ctk.CTkButton(row_frame, text="✕", font=("Arial", 14), width=20, height=20, 
                                       fg_color="transparent", text_color=ModernTheme.TEXT_MUTED, hover_color="#52525b",
                                       command=lambda sid=signal['id']: self._delete_signal_row(sid))
-        delete_button.grid(row=0, column=5, padx=5)
+        delete_button.grid(row=0, column=6, padx=5)
         
         self.signal_rows[signal['id']] = {
             "frame": row_frame, 

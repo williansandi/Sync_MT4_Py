@@ -4,7 +4,6 @@ from .path_resolver import resource_path
 
 class ConfigManager:
     def __init__(self, db_path='config.db'):
-        # Garante que o caminho para o DB seja sempre absoluto a partir da raiz do projeto
         self.db_path = resource_path(db_path)
         self._setup_database()
 
@@ -20,35 +19,28 @@ class ConfigManager:
             )
         ''')
 
-        cursor.execute("SELECT COUNT(*) FROM settings")
-        if cursor.fetchone()[0] == 0:
-            logging.info("Banco de dados de configuração vazio. Populando com valores padrão.")
-            default_settings = {
-                # Seção AJUSTES
-                'tipo': 'binary', 'valor_entrada': '5', 'stop_win': '100', 'stop_loss': '100',
-                # Seção MARTINGALE
-                'usar_ciclos': 'S',
-                'management_type': 'agressivo',
-                'niveis_martingale': '1', 
-                'fator_martingale': '2.1',
-                'conservative_recovery_percentage': '50',
-                # Seção SOROS
-                'usar_soros': 'S', 'niveis_soros': '3',
-                # --- (NOVO) Seção Filtro de Notícias ---
-                'usar_filtro_noticias': 'S',
-                'minutos_antes_noticia': '15',
-                'minutos_depois_noticia': '15'
-            }
-            cursor.executemany("INSERT INTO settings (key, value) VALUES (?, ?)", default_settings.items())
-        
-        # --- (NOVO) Adiciona as chaves de notícias se elas não existirem (para atualizações) ---
+        # Remove old keys to avoid conflicts
+        old_keys_to_remove = ['management_type', 'niveis_martingale', 'max_ciclos', 'payout_recuperacao', 'conservative_recovery_percentage']
+        for old_key in old_keys_to_remove:
+            cursor.execute("DELETE FROM settings WHERE key=?", (old_key,))
+
+        # Add new keys
         new_keys = {
+            'perfil_de_risco': 'MODERADO',
+            'conservador_recuperacao': '50', 'conservador_max_gales': '1', 'conservador_max_ciclos': '3',
+            'moderado_recuperacao': '75', 'moderado_max_gales': '2', 'moderado_max_ciclos': '2',
+            'agressivo_recuperacao': '110', 'agressivo_max_gales': '2', 'agressivo_max_ciclos': '2',
             'usar_filtro_noticias': 'S', 
             'minutos_antes_noticia': '15', 
             'minutos_depois_noticia': '15',
-            'management_type': 'agressivo',
             'usar_ciclos': 'S',
-            'conservative_recovery_percentage': '50'
+            'fator_martingale': '2.1',
+            'usar_soros': 'N',
+            'niveis_soros': '3',
+            'tipo': 'binary', 
+            'valor_entrada': '5', 
+            'stop_win': '100', 
+            'stop_loss': '100'
         }
         for key, value in new_keys.items():
             cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, value))

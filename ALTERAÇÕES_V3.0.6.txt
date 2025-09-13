@@ -1,0 +1,7 @@
+- Ao fazer o login no programa caso as credenciais estejam erradas o robo aceita a credencial mas depois da erro na conextao fazendo com que precise fechar o programa e abrir novamnente. - OK
+
+- Tratamento de sinais para pares abertos apenas o EURUSD-op esta sendo tratado - (( TESTES DE 8H as 12H ))
+
+- Alinhamento da tabela das noticias - OK
+
+- Refinamento da lógica do gerenciamento de CICLOS , calculos corretos e criação de perfis - OK
