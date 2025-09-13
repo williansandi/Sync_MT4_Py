@@ -140,3 +140,4 @@ logs/
 saved_login.json
 mt4_pares.txt
 config.db
+test_config.db
