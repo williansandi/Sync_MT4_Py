@@ -132,3 +132,11 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Custom ignores for SyncMT4 project
+.vscode/
+app_icon.ico
+logs/
+saved_login.json
+mt4_pares.txt
+config.db
